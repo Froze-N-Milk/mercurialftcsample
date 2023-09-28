@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.mercurialftc.examples;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.mercurialftc.mercurialftc.example.DemoSubsystem;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.commands.Command;
 import org.mercurialftc.mercurialftc.scheduler.subsystems.SubsystemInterface;

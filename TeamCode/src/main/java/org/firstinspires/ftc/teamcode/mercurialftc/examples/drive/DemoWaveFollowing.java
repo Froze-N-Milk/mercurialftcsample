@@ -1,9 +1,12 @@
 package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
+import org.mercurialftc.mercurialftc.scheduler.Scheduler;
+import org.mercurialftc.mercurialftc.scheduler.commands.Command;
 import org.mercurialftc.mercurialftc.scheduler.commands.CommandSignature;
 import org.mercurialftc.mercurialftc.scheduler.triggers.gamepadex.ContinuousInput;
 import org.mercurialftc.mercurialftc.silversurfer.encoderticksconverter.Units;
@@ -14,12 +17,13 @@ import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
 
 import java.util.Locale;
 
-@TeleOp
+@Autonomous
 public class DemoWaveFollowing extends OpModeEX {
 	private final double ONE_SQUARE = Units.INCH.toMillimeters(23.75);
 	private final Pose2D startPose = new Pose2D(-1.5 * ONE_SQUARE, -2.5 * ONE_SQUARE, new AngleDegrees(90));
 	private Wave wave;
 	private MecanumDriveBase mecanumDriveBase;
+	private Command following;
 	
 	/**
 	 * called before {@link #initEX()}, solely for initialising all subsystems, ensures that they are registered with the correct {@link Scheduler}, and that their init methods will be run
@@ -70,8 +74,9 @@ public class DemoWaveFollowing extends OpModeEX {
 	
 	@Override
 	public void startEX() {
-		mecanumDriveBase.followWave(wave).queue();
-
+		following = mecanumDriveBase.followWave(wave);
+		
+		following.queue();
 //		telemetry.setAutoClear(false);
 //
 //		Telemetry.Line dataLine = telemetry.addLine();
@@ -98,7 +103,8 @@ public class DemoWaveFollowing extends OpModeEX {
 			commands.addData(command.getClass().getSimpleName(), command.finished());
 		}
 		
-		telemetry.addData("is finished", mecanumDriveBase.getWaveFollower().isFinished());
+		telemetry.addData("is scheduled", Scheduler.getSchedulerInstance().isScheduled(following));
+		
 		
 		telemetry.addData("time", getElapsedTime().seconds());
 	}

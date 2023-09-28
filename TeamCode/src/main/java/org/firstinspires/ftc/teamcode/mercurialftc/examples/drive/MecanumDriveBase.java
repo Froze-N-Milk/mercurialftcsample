@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
@@ -18,6 +19,7 @@ import org.mercurialftc.mercurialftc.silversurfer.encoderticksconverter.EncoderT
 import org.mercurialftc.mercurialftc.silversurfer.encoderticksconverter.Units;
 import org.mercurialftc.mercurialftc.silversurfer.followable.motionconstants.MecanumMotionConstants;
 import org.mercurialftc.mercurialftc.silversurfer.followable.Wave;
+import org.mercurialftc.mercurialftc.silversurfer.follower.FieldCentricWaveFollower;
 import org.mercurialftc.mercurialftc.silversurfer.follower.GVFWaveFollower;
 import org.mercurialftc.mercurialftc.silversurfer.follower.MecanumArbFollower;
 import org.mercurialftc.mercurialftc.silversurfer.follower.WaveFollower;
@@ -34,14 +36,15 @@ import org.mercurialftc.mercurialftc.util.hardware.IMU_EX;
 import org.mercurialftc.mercurialftc.util.hardware.cachinghardwaredevice.CachingDcMotorEX;
 
 public class MecanumDriveBase extends Subsystem {
-	protected final ContinuousInput x, y, t;
-	protected final Pose2D startPose;
-	protected DcMotorEx fl, bl, br, fr;
-	protected VoltageSensor voltageSensor;
-	protected WaveFollower waveFollower;
-	protected MecanumArbFollower mecanumArbFollower;
-	protected Tracker tracker;
-	protected MecanumMotionConstants motionConstants;
+	private final ContinuousInput x, y, t;
+	private final Pose2D startPose;
+	private DcMotorEx fl, bl, br, fr;
+	private VoltageSensor voltageSensor;
+	private WaveFollower waveFollower;
+	private MecanumArbFollower mecanumArbFollower;
+	private Tracker tracker;
+	private MecanumMotionConstants motionConstants;
+	private ElapsedTime waveTimer;
 	
 	/**
 	 * @param opModeEX  the opModeEX object to register against
@@ -56,6 +59,7 @@ public class MecanumDriveBase extends Subsystem {
 		this.x = x;
 		this.y = y;
 		this.t = t;
+		this.waveTimer = new ElapsedTime();
 	}
 	
 	
@@ -162,10 +166,15 @@ public class MecanumDriveBase extends Subsystem {
 				fl, bl, br, fr
 		);
 		
-		waveFollower = new GVFWaveFollower(
+		waveFollower = new FieldCentricWaveFollower(
 				tracker,
 				mecanumArbFollower
 		);
+
+//		waveFollower = new GVFWaveFollower(
+//				tracker,
+//				mecanumArbFollower
+//		);
 		
 		tracker.reset(); // resets the encoders
 		
@@ -209,10 +218,13 @@ public class MecanumDriveBase extends Subsystem {
 	public Command followWave(Wave wave) {
 		return new LambdaCommand()
 				.setRequirements(this)
-				.init(() -> waveFollower.setWave(wave))
+				.init(() -> {
+					waveFollower.setWave(wave);
+					waveTimer.reset();
+				})
 				.execute(() -> {
-					double time = opModeEX.getElapsedTime().seconds();
-					waveFollower.update(time);
+					opModeEX.telemetry.addData("Timer", waveTimer.seconds());
+					waveFollower.update(waveTimer.seconds());
 				})
 				.finish(waveFollower::isFinished)
 				.setInterruptable(true);
@@ -227,10 +239,12 @@ public class MecanumDriveBase extends Subsystem {
 	public Command followWaveInterruptible(Wave wave) {
 		return new LambdaCommand()
 				.setRequirements(this)
-				.init(() -> waveFollower.setWave(wave))
+				.init(() -> {
+					waveFollower.setWave(wave);
+					waveTimer.reset();
+				})
 				.execute(() -> {
-					double time = opModeEX.getElapsedTime().seconds();
-					waveFollower.update(time);
+					waveFollower.update(waveTimer.seconds());
 				})
 				.finish(() -> waveFollower.isFinished() || x.getValue() != 0.0 || y.getValue() != 0.0 || t.getValue() != 0.0)
 				.setInterruptable(true);

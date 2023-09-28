@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.mercurialftc.examples.autointoteleop;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.mercurialftc.mercurialftc.example.DemoSubsystem;
+import org.firstinspires.ftc.teamcode.mercurialftc.examples.DemoSubsystem;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.Scheduler;
 
