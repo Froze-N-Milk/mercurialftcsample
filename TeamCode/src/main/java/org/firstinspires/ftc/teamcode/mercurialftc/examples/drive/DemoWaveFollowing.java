@@ -14,7 +14,7 @@ import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
 
 @Autonomous
 public class DemoWaveFollowing extends OpModeEX {
-	private final double ONE_SQUARE = Units.INCH.toMillimeters(23.75);
+	private static final double ONE_TILE = Units.INCH.toMillimeters(23.75);
 	
 	private Pose2D startPose;
 	private Wave wave;
@@ -25,7 +25,7 @@ public class DemoWaveFollowing extends OpModeEX {
 	 */
 	@Override
 	public void registerSubsystems() {
-		startPose = new Pose2D(-1.5 * ONE_SQUARE, -2.5 * ONE_SQUARE, new AngleDegrees(0));
+		startPose = new Pose2D(-1.5 * ONE_TILE, -2.5 * ONE_TILE, new AngleDegrees(0));
 		mecanumDriveBase = new MecanumDriveBase(
 				this,
 				startPose,
@@ -47,11 +47,11 @@ public class DemoWaveFollowing extends OpModeEX {
 		)
 				.scaleTranslationVelocity(0.8)
 				.scaleTranslationAcceleration(0.8)
-				.splineTo(-1.5 * ONE_SQUARE, -1.5 * ONE_SQUARE, new AngleDegrees(0))
+				.splineTo(-1.5 * ONE_TILE, -1.5 * ONE_TILE, new AngleDegrees(0))
 				.splineTo(0, 0, new AngleDegrees(0))
 				.waitFor(1)
-				.splineTo(-1.5 * ONE_SQUARE, -1.5 * ONE_SQUARE, new AngleDegrees(0))
-				.splineTo(-1.5 * ONE_SQUARE, -2.5 * ONE_SQUARE, new AngleDegrees(0));
+				.splineTo(-1.5 * ONE_TILE, -1.5 * ONE_TILE, new AngleDegrees(0))
+				.splineTo(-1.5 * ONE_TILE, -2.5 * ONE_TILE, new AngleDegrees(0));
 		
 		wave = waveBuilder.build();
 	}
