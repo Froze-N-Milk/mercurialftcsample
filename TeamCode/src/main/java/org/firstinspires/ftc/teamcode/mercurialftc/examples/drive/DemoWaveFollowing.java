@@ -1,35 +1,31 @@
 package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.Scheduler;
 import org.mercurialftc.mercurialftc.scheduler.commands.Command;
-import org.mercurialftc.mercurialftc.scheduler.commands.CommandSignature;
 import org.mercurialftc.mercurialftc.scheduler.triggers.gamepadex.ContinuousInput;
 import org.mercurialftc.mercurialftc.silversurfer.encoderticksconverter.Units;
 import org.mercurialftc.mercurialftc.silversurfer.followable.Wave;
 import org.mercurialftc.mercurialftc.silversurfer.followable.WaveBuilder;
-import org.mercurialftc.mercurialftc.silversurfer.geometry.AngleDegrees;
+import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleDegrees;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
-
-import java.util.Locale;
 
 @Autonomous
 public class DemoWaveFollowing extends OpModeEX {
 	private final double ONE_SQUARE = Units.INCH.toMillimeters(23.75);
-	private final Pose2D startPose = new Pose2D(-1.5 * ONE_SQUARE, -2.5 * ONE_SQUARE, new AngleDegrees(90));
+	
+	private Pose2D startPose;
 	private Wave wave;
 	private MecanumDriveBase mecanumDriveBase;
-	private Command following;
 	
 	/**
 	 * called before {@link #initEX()}, solely for initialising all subsystems, ensures that they are registered with the correct {@link Scheduler}, and that their init methods will be run
 	 */
 	@Override
 	public void registerSubsystems() {
+		startPose = new Pose2D(-1.5 * ONE_SQUARE, -2.5 * ONE_SQUARE, new AngleDegrees(0));
 		mecanumDriveBase = new MecanumDriveBase(
 				this,
 				startPose,
@@ -49,11 +45,13 @@ public class DemoWaveFollowing extends OpModeEX {
 				Units.MILLIMETER,
 				mecanumDriveBase.getMotionConstants()
 		)
-				.splineTo(-0.5 * ONE_SQUARE, -0.5 * ONE_SQUARE, new AngleDegrees(90))
-				.splineTo(2.5 * ONE_SQUARE, 0, new AngleDegrees(90))
-				.waitFor(1.0)
-				.splineTo(-0.5 * ONE_SQUARE, -0.5 * ONE_SQUARE, new AngleDegrees(90))
-				.splineTo(-1.5 * ONE_SQUARE, -2.5 * ONE_SQUARE, new AngleDegrees(90));
+				.scaleTranslationVelocity(0.8)
+				.scaleTranslationAcceleration(0.8)
+				.splineTo(-1.5 * ONE_SQUARE, -1.5 * ONE_SQUARE, new AngleDegrees(0))
+				.splineTo(0, 0, new AngleDegrees(0))
+				.waitFor(1)
+				.splineTo(-1.5 * ONE_SQUARE, -1.5 * ONE_SQUARE, new AngleDegrees(0))
+				.splineTo(-1.5 * ONE_SQUARE, -2.5 * ONE_SQUARE, new AngleDegrees(0));
 		
 		wave = waveBuilder.build();
 	}
@@ -74,39 +72,16 @@ public class DemoWaveFollowing extends OpModeEX {
 	
 	@Override
 	public void startEX() {
-		following = mecanumDriveBase.followWave(wave);
+		Command following = mecanumDriveBase.followWave(wave);
 		
 		following.queue();
-//		telemetry.setAutoClear(false);
-//
-//		Telemetry.Line dataLine = telemetry.addLine();
-//
-//		Followable.Output output = new Followable.Output(new Vector2D(0, 0), 0, 0, new Pose2D(), new Pose2D());
-//		getElapsedTime().reset();
-//		while (!wave.update(getElapsedTime().seconds())) {
-//			if (output != wave.getOutput()) {
-//				output = wave.getOutput();
-//				String data = String.format(Locale.ENGLISH, "x: %f, y: %f, r: %f, time: %f%n", output.getTranslationVector().getX(), output.getTranslationVector().getY(), output.getRotationalVelocity(), output.getCallbackTime());
-//				dataLine.addData(String.valueOf(getElapsedTime().seconds()), data);
-//			}
-//		}
 	}
 	
 	@Override
 	public void loopEX() {
-		telemetry.addData("wave output", String.format(Locale.ENGLISH, "x: %f, y: %f, r: %f", wave.getOutput().getTranslationVector().getX(), wave.getOutput().getTranslationVector().getY(), wave.getOutput().getRotationalVelocity()));
-		telemetry.addData("wave target position", String.format(Locale.ENGLISH, "x: %f, y: %f, r: %f", wave.getOutput().getDestination().getX(), wave.getOutput().getDestination().getY(), wave.getOutput().getDestination().getTheta().getDegrees()));
-		
-		Telemetry.Line commands = telemetry.addLine("commands");
-		for (CommandSignature command : getScheduler().getCommands()) {
-//			commands.addData(command.getClass().getSimpleName(), Arrays.toString(command.getRequiredSubsystems().toArray()));
-			commands.addData(command.getClass().getSimpleName(), command.finished());
-		}
-		
-		telemetry.addData("is scheduled", Scheduler.getSchedulerInstance().isScheduled(following));
-		
-		
-		telemetry.addData("time", getElapsedTime().seconds());
+//		telemetry.addData("wave output", String.format(Locale.ENGLISH, "%s, r: %f", wave.getOutput().getTranslationVector(), wave.getOutput().getRotationalVelocity()));
+		telemetry.addData("target pose", wave.getOutput().getPosition());
+		telemetry.addData("pose", mecanumDriveBase.getTracker().getPose2D());
 	}
 	
 	@Override

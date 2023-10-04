@@ -1,16 +1,18 @@
-package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive;
+package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.tuners;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.MecanumDriveBase;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.commands.LambdaCommand;
 import org.mercurialftc.mercurialftc.scheduler.triggers.gamepadex.ContinuousInput;
+import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleDegrees;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Vector2D;
 import org.mercurialftc.mercurialftc.silversurfer.tracker.Tracker;
 
-@TeleOp(name = "Translational Velocity Tuner")
-public class TranslationalVelocityTuner extends OpModeEX {
+@TeleOp(name = "Translational X Velocity Tuner")
+public class TranslationalXVelocityTuner extends OpModeEX {
 	private MecanumDriveBase mecanumDriveBase;
 	private double previousTime;
 	private double recordedVoltage;
@@ -34,7 +36,7 @@ public class TranslationalVelocityTuner extends OpModeEX {
 	public void registerSubsystems() {
 		mecanumDriveBase = new MecanumDriveBase(
 				this,
-				new Pose2D(),
+				new Pose2D(0, 0, new AngleDegrees(90)),
 				new ContinuousInput(() -> 0),
 				new ContinuousInput(() -> running ? 1 : 0),
 				new ContinuousInput(() -> 0)

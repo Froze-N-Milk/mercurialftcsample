@@ -1,15 +1,17 @@
-package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive;
+package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.tuners;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.MecanumDriveBase;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.commands.LambdaCommand;
 import org.mercurialftc.mercurialftc.scheduler.triggers.gamepadex.ContinuousInput;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
+import org.mercurialftc.mercurialftc.silversurfer.geometry.Vector2D;
 import org.mercurialftc.mercurialftc.silversurfer.tracker.Tracker;
 
-@TeleOp(name = "Rotational Velocity Tuner")
-public class RotationalVelocityTuner extends OpModeEX {
+@TeleOp(name = "Translational Y Velocity Tuner")
+public class TranslationalYVelocityTuner extends OpModeEX {
 	private MecanumDriveBase mecanumDriveBase;
 	private double previousTime;
 	private double recordedVoltage;
@@ -35,8 +37,8 @@ public class RotationalVelocityTuner extends OpModeEX {
 				this,
 				new Pose2D(),
 				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> running ? 1 : 0)
+				new ContinuousInput(() -> running ? 1 : 0),
+				new ContinuousInput(() -> 0)
 		);
 	}
 	
@@ -78,13 +80,15 @@ public class RotationalVelocityTuner extends OpModeEX {
 		double previousAverage = averageVelocity;
 		double currentTime = getElapsedTime().seconds();
 		Tracker tracker = mecanumDriveBase.getTracker();
-		double rotationalVelocity = tracker.getPreviousPose2D().getTheta().findShortestDistance(tracker.getPose2D().getTheta()) / (currentTime - previousTime);
+		Vector2D velocityVector = new Vector2D(tracker.getPose2D().getX() - tracker.getPreviousPose2D().getX(), tracker.getPose2D().getY() - tracker.getPreviousPose2D().getY());
+		
+		double translationalVelocity = velocityVector.getMagnitude() / (currentTime - previousTime);
 		
 		
 		if (running) {
 			telemetry.addLine("press gamepad1 a to pause");
 			
-			velocities[index] = rotationalVelocity;
+			velocities[index] = translationalVelocity;
 			currents[index] = mecanumDriveBase.getCurrent();
 			index++;
 			index %= range;
@@ -102,7 +106,7 @@ public class RotationalVelocityTuner extends OpModeEX {
 		
 		telemetry.addData("delta (stop when this is low)", Math.abs(averageVelocity - previousAverage));
 		
-		telemetry.addData("rotationalVelocity", averageVelocity);
+		telemetry.addData("translationalVelocity", averageVelocity);
 		
 		telemetry.addData("voltage", recordedVoltage);
 		

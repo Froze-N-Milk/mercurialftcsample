@@ -1,25 +1,33 @@
-package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive;
+package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.tuners;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.MecanumDriveBase;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.commands.LambdaCommand;
-import org.mercurialftc.mercurialftc.scheduler.triggers.Trigger;
 import org.mercurialftc.mercurialftc.scheduler.triggers.gamepadex.ContinuousInput;
+import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleDegrees;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Vector2D;
 import org.mercurialftc.mercurialftc.silversurfer.tracker.Tracker;
 
-@TeleOp(name = "Translational Acceleration Tuner")
-public class TranslationalAccelerationTuner extends OpModeEX {
+@TeleOp(name = "Translational Angled Velocity Tuner")
+public class TranslationalAngledVelocityTuner extends OpModeEX {
 	private MecanumDriveBase mecanumDriveBase;
-	
 	private double previousTime;
-	private double velocity, endVelocity;
-	private int velocityIndex, velocitiesSize;
+	private double recordedVoltage;
+	
 	private double[] velocities;
-	private double startTime, endTime;
-	private double drive;
+	private double[] currents;
+	private int index;
+	private int range;
+	
+	private double averageVelocity;
+	private double averageCurrent;
+	
+	
+	private boolean running;
+	
 	
 	/**
 	 * called before {@link #initEX()}, solely for initialising all subsystems, ensures that they are registered with the correct {@link org.mercurialftc.mercurialftc.scheduler.Scheduler}, and that their init methods will be run
@@ -28,9 +36,9 @@ public class TranslationalAccelerationTuner extends OpModeEX {
 	public void registerSubsystems() {
 		mecanumDriveBase = new MecanumDriveBase(
 				this,
-				new Pose2D(),
+				new Pose2D(0, 0, new AngleDegrees(45)),
 				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> drive),
+				new ContinuousInput(() -> running ? 1 : 0),
 				new ContinuousInput(() -> 0)
 		);
 	}
@@ -40,10 +48,9 @@ public class TranslationalAccelerationTuner extends OpModeEX {
 	 */
 	@Override
 	public void initEX() {
-		velocitiesSize = 15;
-		velocities = new double[velocitiesSize];
-		velocityIndex = 0;
-		drive = 1;
+		mecanumDriveBase.getTracker().reset();
+		range = 50;
+		running = true;
 	}
 	
 	/**
@@ -52,17 +59,7 @@ public class TranslationalAccelerationTuner extends OpModeEX {
 	 */
 	@Override
 	public void registerTriggers() {
-		new Trigger(() -> Math.abs(velocity - mecanumDriveBase.getMotionConstants().getMaxTranslationalVelocity()) < 0.02 * mecanumDriveBase.getMotionConstants().getMaxTranslationalVelocity())
-				.setCommand(
-						new LambdaCommand()
-								.init(() -> {
-									endTime = getElapsedTime().seconds();
-									endVelocity = velocity;
-									drive = 0;
-								})
-								.execute(() -> telemetry.addData("acceleration", endVelocity / (endTime - startTime)))
-								.finish(() -> false)
-				);
+		gamepadEX1().a().onPress(new LambdaCommand().init(() -> running = !running));
 	}
 	
 	@Override
@@ -72,27 +69,51 @@ public class TranslationalAccelerationTuner extends OpModeEX {
 	
 	@Override
 	public void startEX() {
-		telemetry.setAutoClear(true);
-		startTime = getElapsedTime().seconds();
+		mecanumDriveBase.getTracker().reset();
+		recordedVoltage = mecanumDriveBase.getVoltageSensor().getVoltage();
+		velocities = new double[range];
+		currents = new double[range];
+		index = 0;
 	}
 	
 	@Override
 	public void loopEX() {
+		double previousAverage = averageVelocity;
 		double currentTime = getElapsedTime().seconds();
-		telemetry.addData("max velocity", mecanumDriveBase.getMotionConstants().getMaxTranslationalVelocity());
 		Tracker tracker = mecanumDriveBase.getTracker();
 		Vector2D velocityVector = new Vector2D(tracker.getPose2D().getX() - tracker.getPreviousPose2D().getX(), tracker.getPose2D().getY() - tracker.getPreviousPose2D().getY());
+		
 		double translationalVelocity = velocityVector.getMagnitude() / (currentTime - previousTime);
-		velocities[velocityIndex] = translationalVelocity;
-		velocityIndex++;
-		velocityIndex %= velocitiesSize - 1;
-		velocity = 0;
-		for (double v : velocities) {
-			velocity += v;
+		
+		
+		if (running) {
+			telemetry.addLine("press gamepad1 a to pause");
+			
+			velocities[index] = translationalVelocity;
+			currents[index] = mecanumDriveBase.getCurrent();
+			index++;
+			index %= range;
+			
+			for (int i = 0; i < range; i++) {
+				averageVelocity += velocities[i];
+				averageCurrent += currents[i];
+			}
+			averageVelocity /= range;
+			averageCurrent /= range;
+		} else {
+			telemetry.addLine("press gamepad1 a to resume");
 		}
-		velocity /= velocitiesSize;
-		telemetry.addData("velocity", velocity);
-		telemetry.addData("velocity delta", velocity - mecanumDriveBase.getMotionConstants().getMaxTranslationalVelocity());
+		
+		
+		telemetry.addData("delta (stop when this is low)", Math.abs(averageVelocity - previousAverage));
+		
+		telemetry.addData("translationalVelocity", averageVelocity);
+		
+		telemetry.addData("voltage", recordedVoltage);
+		
+		telemetry.addData("current", averageCurrent);
+		
+		
 		previousTime = currentTime;
 	}
 	

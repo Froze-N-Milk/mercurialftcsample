@@ -19,14 +19,12 @@ import org.mercurialftc.mercurialftc.silversurfer.encoderticksconverter.EncoderT
 import org.mercurialftc.mercurialftc.silversurfer.encoderticksconverter.Units;
 import org.mercurialftc.mercurialftc.silversurfer.followable.motionconstants.MecanumMotionConstants;
 import org.mercurialftc.mercurialftc.silversurfer.followable.Wave;
-import org.mercurialftc.mercurialftc.silversurfer.follower.FieldCentricWaveFollower;
 import org.mercurialftc.mercurialftc.silversurfer.follower.GVFWaveFollower;
 import org.mercurialftc.mercurialftc.silversurfer.follower.MecanumArbFollower;
 import org.mercurialftc.mercurialftc.silversurfer.follower.WaveFollower;
-import org.mercurialftc.mercurialftc.silversurfer.geometry.Angle;
-import org.mercurialftc.mercurialftc.silversurfer.geometry.AngleRadians;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Vector2D;
+import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.Angle;
 import org.mercurialftc.mercurialftc.silversurfer.tracker.Tracker;
 import org.mercurialftc.mercurialftc.silversurfer.tracker.TrackerConstants;
 import org.mercurialftc.mercurialftc.silversurfer.tracker.TwoWheelTracker;
@@ -38,13 +36,13 @@ import org.mercurialftc.mercurialftc.util.hardware.cachinghardwaredevice.Caching
 public class MecanumDriveBase extends Subsystem {
 	private final ContinuousInput x, y, t;
 	private final Pose2D startPose;
+	private final ElapsedTime waveTimer;
 	private DcMotorEx fl, bl, br, fr;
 	private VoltageSensor voltageSensor;
 	private WaveFollower waveFollower;
 	private MecanumArbFollower mecanumArbFollower;
 	private Tracker tracker;
 	private MecanumMotionConstants motionConstants;
-	private ElapsedTime waveTimer;
 	
 	/**
 	 * @param opModeEX  the opModeEX object to register against
@@ -80,17 +78,28 @@ public class MecanumDriveBase extends Subsystem {
 		voltageSensor = opModeEX.hardwareMap.getAll(VoltageSensor.class).iterator().next();
 		
 		
-		VoltagePerformanceEnforcer translationalEnforcer = new VoltagePerformanceEnforcer(
-				12.887, // volts
-				0.5376678453344297, // amps
-				2102.6753306718024 // in millimeters/second, you can use Units.UNIT.toMillimeters(value) to convert if you have measured some other way
+		VoltagePerformanceEnforcer translationalYEnforcer = new VoltagePerformanceEnforcer(
+				13.695, // volts
+				0.5480339638343823, // amps
+				1563.7458110091459 // in millimeters/second, you can use Units.UNIT.toMillimeters(value) to convert if you have measured some other way
 		);
 		
+		VoltagePerformanceEnforcer translationalXEnforcer = new VoltagePerformanceEnforcer(
+				13.975, // volts
+				0.7686673487042971, // amps
+				1123.465776909653 // in millimeters/second, you can use Units.UNIT.toMillimeters(value) to convert if you have measured some other way
+		);
+		
+		VoltagePerformanceEnforcer translationalAngledEnforcer = new VoltagePerformanceEnforcer(
+				13.931, // volts
+				0.7242985361348729, // amps
+				1008.932843434795711 // in millimeters/second, you can use Units.UNIT.toMillimeters(value) to convert if you have measured some other way
+		);
 		
 		VoltagePerformanceEnforcer rotationalEnforcer = new VoltagePerformanceEnforcer(
-				13.669, // volts
-				0.5393966075517949, // amps
-				4.146902659935421 // radians/second
+				13.101, // volts
+				0.6024987902362003, // amps
+				3.9969453526299685 // radians/second
 		);
 		
 		double currentVoltage = voltageSensor.getVoltage();
@@ -100,15 +109,23 @@ public class MecanumDriveBase extends Subsystem {
 //				1,
 //				1,
 //				1,
+//				1,
+//				1,
+//				1,
+//				1,
 //				1
 //		);
 		
 		// example final results
 		motionConstants = new MecanumMotionConstants(
-				translationalEnforcer.transformVelocity(currentVoltage), // set to 1 to start with
-				rotationalEnforcer.transformVelocity(currentVoltage), // set to 1 to start with
-				1986.8503596612709, // set to 1 to start with // in millimeters, you can use Units.UNIT.toMillimeters(value) to convert if you have measured some other way
-				5.165765132620952 // set to 1 to start with
+				translationalYEnforcer.transformVelocity(currentVoltage),
+				translationalXEnforcer.transformVelocity(currentVoltage),
+				translationalAngledEnforcer.transformVelocity(currentVoltage),
+				rotationalEnforcer.transformVelocity(currentVoltage),
+				2229.3175544265337, // set to 1 to start with // in millimeters, you can use Units.UNIT.toMillimeters(value) to convert if you have measured some other way
+				1577.2113772239454, // set to 1 to start with,
+				1393.1682920895462,
+				6.017290762302119
 		);
 		
 		
@@ -163,20 +180,24 @@ public class MecanumDriveBase extends Subsystem {
 		
 		mecanumArbFollower = new MecanumArbFollower(
 				motionConstants,
+				tracker,
 				fl, bl, br, fr
 		);
 		
-		waveFollower = new FieldCentricWaveFollower(
-				tracker,
-				mecanumArbFollower
+		waveFollower = new GVFWaveFollower(
+				mecanumArbFollower,
+				tracker
 		);
 
-//		waveFollower = new GVFWaveFollower(
-//				tracker,
-//				mecanumArbFollower
-//		);
+//		waveFollower = mecanumArbFollower;
 		
-		tracker.reset(); // resets the encoders
+		getTracker().reset(); // resets the encoders
+		
+		// set the motors to brake on 0 power
+		fl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+		bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+		br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+		fr.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 		
 		// sets the run modes
 		fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -192,14 +213,9 @@ public class MecanumDriveBase extends Subsystem {
 	
 	@Override
 	public void defaultCommandExecute() {
-		Vector2D translationVector = new Vector2D(x.getValue(), y.getValue());
-		translationVector = translationVector.rotate(new AngleRadians(-tracker.getPose2D().getTheta().getRadians()));
-		double scalingQuantity = Math.max(1, translationVector.getMagnitude());
-		translationVector = translationVector.scalarMultiply(1 / scalingQuantity).scalarMultiply(getMotionConstants().getMaxTranslationalVelocity());
-		
 		mecanumArbFollower.follow(
-				translationVector,
-				t.getValue() * getMotionConstants().getMaxRotationalVelocity()
+				new Vector2D(x.getValue(), y.getValue()),
+				t.getValue()
 		);
 	}
 	
@@ -223,7 +239,6 @@ public class MecanumDriveBase extends Subsystem {
 					waveTimer.reset();
 				})
 				.execute(() -> {
-					opModeEX.telemetry.addData("Timer", waveTimer.seconds());
 					waveFollower.update(waveTimer.seconds());
 				})
 				.finish(waveFollower::isFinished)

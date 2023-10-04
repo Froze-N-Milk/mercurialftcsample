@@ -1,7 +1,8 @@
-package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive;
+package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.tuners;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.MecanumDriveBase;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.commands.LambdaCommand;
 import org.mercurialftc.mercurialftc.scheduler.triggers.Trigger;
@@ -80,7 +81,7 @@ public class RotationalAccelerationTuner extends OpModeEX {
 		telemetry.addData("max velocity", mecanumDriveBase.getMotionConstants().getMaxRotationalVelocity());
 		velocities[velocityIndex] = Math.abs(mecanumDriveBase.getTracker().getPose2D().getTheta().getRadians() - mecanumDriveBase.getTracker().getPreviousPose2D().getTheta().getRadians()) / (currentTime - previousTime);
 		velocityIndex++;
-		velocityIndex %= velocitiesSize - 1;
+		velocityIndex %= velocitiesSize;
 		velocity = 0;
 		for (double v : velocities) {
 			velocity += v;

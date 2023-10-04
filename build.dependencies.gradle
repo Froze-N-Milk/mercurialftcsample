@@ -21,10 +21,12 @@ dependencies {
     implementation 'org.firstinspires.ftc:gameAssets-CenterStage:1.0.0'
     implementation 'org.tensorflow:tensorflow-lite-task-vision:0.4.3'
     runtimeOnly 'org.tensorflow:tensorflow-lite:2.12.0'
+    //noinspection GradleDependency
     implementation 'androidx.appcompat:appcompat:1.2.0'
 
-//    implementation 'com.github.froze-N-Milk:mercurialftc:v0.04'
-    implementation 'com.github.Froze-N-Milk:mercurialftc:13b22ce'
+    // implementation 'com.github.froze-N-Milk:mercurialftc:v0.04'
+    //noinspection GradleDependency
+    implementation 'com.github.Froze-N-Milk:mercurialftc:c64c61e'
     //noinspection GradleDependency
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.9'
 }

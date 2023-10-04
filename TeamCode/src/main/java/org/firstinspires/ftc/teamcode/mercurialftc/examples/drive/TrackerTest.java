@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
-import org.mercurialftc.mercurialftc.silversurfer.geometry.AngleDegrees;
+import org.mercurialftc.mercurialftc.scheduler.commands.LambdaCommand;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Vector2D;
 
@@ -28,7 +28,9 @@ public class TrackerTest extends OpModeEX {
 	
 	@Override
 	public void registerTriggers() {
-	
+		gamepadEX1().left_bumper().onPress(
+				new LambdaCommand().init(mecanumDriveBase.getTracker()::reset)
+		);
 	}
 	
 	@Override
@@ -47,6 +49,9 @@ public class TrackerTest extends OpModeEX {
 		telemetry.addData("Y", mecanumDriveBase.getTracker().getPose2D().getY());
 		telemetry.addData("THETA (degrees)", mecanumDriveBase.getTracker().getPose2D().getTheta().getDegrees());
 		telemetry.addData("total displacement", new Vector2D(mecanumDriveBase.getTracker().getPose2D().getX(), mecanumDriveBase.getTracker().getPose2D().getY()).getMagnitude());
+		telemetry.addData("outputMagnitude", new Vector2D(gamepadEX1().leftX().getValue(), gamepadEX1().leftY().getValue()).getMagnitude());
+		telemetry.addData("outputDirection", new Vector2D(gamepadEX1().leftX().getValue(), gamepadEX1().leftY().getValue()).getHeading().getDegrees());
+		
 	}
 	
 	@Override
