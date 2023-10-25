@@ -17,13 +17,22 @@ public class DemoCommand implements Command {
 	private final MecanumDriveBase mecanumDriveBase;
 	private final DemoSubsystem demoSubsystem;
 	private final Angle targetAngle;
-	double previousTime;
-	double error, previousError;
+	private final HashSet<SubsystemInterface> requirements;
+	private final HashSet<OpModeEX.OpModeEXRunStates> runStates;
+	private double previousTime;
+	private double error, previousError;
 	
 	public DemoCommand(@NonNull MecanumDriveBase mecanumDriveBase, @NonNull DemoSubsystem demoSubsystem, Angle targetAngle) {
 		this.mecanumDriveBase = mecanumDriveBase;
 		this.demoSubsystem = demoSubsystem;
 		this.targetAngle = targetAngle;
+		
+		requirements = new HashSet<>();
+		requirements.add(demoSubsystem);
+		requirements.add(mecanumDriveBase);
+		
+		runStates = new HashSet<>(1); // this is the defaultg
+		runStates.add(OpModeEX.OpModeEXRunStates.LOOP);
 	}
 	
 	// this is functionally equivalent to not having this block here
@@ -46,7 +55,7 @@ public class DemoCommand implements Command {
 		
 		Vector2D vector2D = new Vector2D(mecanumDriveBase.getX().getAsDouble(), mecanumDriveBase.getY().getAsDouble()).rotate(mecanumDriveBase.getAlliance().getRotationAngle());
 		
-		error = mecanumDriveBase.getTracker().getPose2D().getTheta().findShortestDistance(mecanumDriveBase.getTracker().getPose2D().getTheta());
+		error = mecanumDriveBase.getTracker().getPose2D().getTheta().findShortestDistance(targetAngle);
 		
 		mecanumDriveBase.getArbFollower().follow(
 				vector2D,
@@ -73,9 +82,6 @@ public class DemoCommand implements Command {
 	
 	@Override
 	public Set<SubsystemInterface> getRequiredSubsystems() {
-		HashSet<SubsystemInterface> requirements = new HashSet<>();
-		requirements.add(demoSubsystem);
-		requirements.add(mecanumDriveBase);
 		return requirements;
 	}
 	
@@ -83,8 +89,6 @@ public class DemoCommand implements Command {
 	// this is functionally equivalent to not having this block here
 	@Override
 	public Set<OpModeEX.OpModeEXRunStates> getRunStates() {
-		HashSet<OpModeEX.OpModeEXRunStates> runStates = new HashSet<>(1);
-		runStates.add(OpModeEX.OpModeEXRunStates.LOOP);
 		return runStates;
 	}
 }
