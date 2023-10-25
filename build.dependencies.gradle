@@ -20,9 +20,8 @@ dependencies {
     //noinspection GradleDependency
     implementation 'androidx.appcompat:appcompat:1.2.0'
 
-    // implementation 'com.github.froze-N-Milk:mercurialftc:v0.04'
     //noinspection GradleDependency
-    implementation 'com.github.Froze-N-Milk:mercurialftc:9af3621'
+    implementation 'com.github.Froze-N-Milk:mercurialftc:v0.0.0'
     //noinspection GradleDependency
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.9'
 }

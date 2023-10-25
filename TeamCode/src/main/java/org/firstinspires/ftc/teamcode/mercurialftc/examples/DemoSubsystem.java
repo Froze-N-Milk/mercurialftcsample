@@ -54,7 +54,7 @@ public class DemoSubsystem extends Subsystem {
 		return new LambdaCommand()
 				.setRequirements(this)
 				.setRunStates(OpModeEX.OpModeEXRunStates.LOOP)
-				.setInterruptable(true)
+				.setInterruptible(true)
 				.setInit(() -> {
 					this.targetPosition = targetPosition;
 					this.i = 0;
@@ -73,7 +73,7 @@ public class DemoSubsystem extends Subsystem {
 		return new LambdaCommand()
 				.setRequirements(this)
 				.setRunStates(OpModeEX.OpModeEXRunStates.LOOP)
-				.setInterruptable(true)
+				.setInterruptible(true)
 				.setExecute(() -> {
 					motor1.setPower(controller.getAsDouble());
 					motor2.setPower(controller.getAsDouble());
@@ -86,7 +86,7 @@ public class DemoSubsystem extends Subsystem {
 	
 	public Command resetEncoders() {
 		return new LambdaCommand()
-				.setInterruptable(false)
+				.setInterruptible(false)
 				.setRunStates(OpModeEX.OpModeEXRunStates.INIT_LOOP, OpModeEX.OpModeEXRunStates.LOOP)
 				.setInit(this::resetEncodersInternal)
 				.setFinish(() -> true);

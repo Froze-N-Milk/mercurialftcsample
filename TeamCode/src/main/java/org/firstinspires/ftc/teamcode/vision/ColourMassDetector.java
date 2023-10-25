@@ -80,7 +80,7 @@ public class ColourMassDetector extends Subsystem {
 	public Command searchInitLoop() {
 		return new LambdaCommand()
 				.setRequirements(this) // make sure we require this subsystem!
-				.setInterruptable(true)
+				.setInterruptible(true)
 				.setRunStates(OpModeEX.OpModeEXRunStates.INIT_LOOP) // causes this command to only run during init Loop, and end automatically outside of that
 				.setInit(() -> {
 					// when the command starts, start the live view and streaming, if not already

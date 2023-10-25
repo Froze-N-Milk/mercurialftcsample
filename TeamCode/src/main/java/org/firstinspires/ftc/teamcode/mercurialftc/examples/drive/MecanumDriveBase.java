@@ -297,7 +297,7 @@ public class MecanumDriveBase extends Subsystem {
 					waveFollower.update(waveTimer.seconds());
 				})
 				.setFinish(waveFollower::isFinished)
-				.setInterruptable(true);
+				.setInterruptible(true);
 	}
 	
 	/**
@@ -317,7 +317,7 @@ public class MecanumDriveBase extends Subsystem {
 					waveFollower.update(waveTimer.seconds());
 				})
 				.setFinish(() -> waveFollower.isFinished() || x.getAsDouble() != 0.0 || y.getAsDouble() != 0.0 || t.getAsDouble() != 0.0)
-				.setInterruptable(true);
+				.setInterruptible(true);
 	}
 	
 	/**

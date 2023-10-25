@@ -46,22 +46,22 @@ public class MotorTest extends OpModeEX {
 	
 	@Override
 	public void loopEX() {
-		if (gamepadEX1().a().state()) {
+		if (gamepadEX1().a().getAsBoolean()) {
 			fl.setPower(1.0);
 		} else {
 			fl.setPower(0.0);
 		}
-		if (gamepadEX1().b().state()) {
+		if (gamepadEX1().b().getAsBoolean()) {
 			bl.setPower(1.0);
 		} else {
 			bl.setPower(0.0);
 		}
-		if (gamepadEX1().x().state()) {
+		if (gamepadEX1().x().getAsBoolean()) {
 			br.setPower(1.0);
 		} else {
 			br.setPower(0.0);
 		}
-		if (gamepadEX1().y().state()) {
+		if (gamepadEX1().y().getAsBoolean()) {
 			fr.setPower(1.0);
 		} else {
 			fr.setPower(0.0);
