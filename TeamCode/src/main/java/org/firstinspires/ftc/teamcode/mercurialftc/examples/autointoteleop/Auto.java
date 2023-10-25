@@ -13,32 +13,23 @@ import java.io.IOException;
  * see readme.md in this directory
  */
 @Disabled
+// if you have the preselect option enabled, it will auto select teleop to run after this
 @Autonomous(preselectTeleOp = "Teleop")
 public class Auto extends OpModeEX {
 	private DemoSubsystem demoSubsystem;
 	
-	/**
-	 * called before {@link #initEX()}, solely for initialising all subsystems, ensures that they are registered with the correct {@link Scheduler}, and that their init methods will be run
-	 */
 	@Override
 	public void registerSubsystems() {
 		demoSubsystem = new DemoSubsystem(this);
 	}
 	
-	/**
-	 * should contain your regular init code
-	 */
 	@Override
 	public void initEX() {
-		Scheduler.getConfigOptionsManager().updateValue(Scheduler.ConfigOptions.SCHEDULER_REFRESH_ENABLED.getOption(), false);// we do NOT want to refresh the scheduler when we swap to teleop
+	
 	}
 	
-	/**
-	 * registers triggers after the subsystem and regular init code,
-	 * useful for organisation of your OpModeEX, but functionally no different to initialising them at the end of {@link #initEX()}
-	 */
 	@Override
-	public void registerTriggers() {
+	public void registerBindings() {
 		// typically no trigger code is required in your auto!
 	}
 	
@@ -61,6 +52,10 @@ public class Auto extends OpModeEX {
 	
 	@Override
 	public void stopEX() {
+		// we do NOT want to refresh the scheduler when we swap to teleop
+		Scheduler.getConfigOptionsManager().updateValue(Scheduler.ConfigOptions.SCHEDULER_REFRESH_ENABLED.getOption(), false);
+		
+		
 		try {
 			Scheduler.getConfigOptionsManager().update(); // actually updates the setting we changed
 		} catch (IOException e) {

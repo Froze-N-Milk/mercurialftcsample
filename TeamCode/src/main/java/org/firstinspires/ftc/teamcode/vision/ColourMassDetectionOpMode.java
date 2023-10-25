@@ -93,7 +93,6 @@ public class ColourMassDetectionOpMode extends OpMode {
 			recordedPropPosition = ColourMassDetectionProcessor.PropPositions.MIDDLE;
 		}
 		
-		
 		// now we can use recordedPropPosition in our auto code to modify where we place the purple and yellow pixels
 		switch (recordedPropPosition) {
 			case LEFT:

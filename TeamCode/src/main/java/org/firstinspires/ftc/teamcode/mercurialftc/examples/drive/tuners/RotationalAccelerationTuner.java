@@ -5,8 +5,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.MecanumDriveBase;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.commands.LambdaCommand;
-import org.mercurialftc.mercurialftc.scheduler.triggers.Trigger;
-import org.mercurialftc.mercurialftc.scheduler.triggers.gamepadex.ContinuousInput;
+import org.mercurialftc.mercurialftc.scheduler.bindings.Trigger;
+import org.mercurialftc.mercurialftc.scheduler.bindings.gamepadex.DomainSupplier;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
 
 @TeleOp(name = "Rotational Acceleration Tuner")
@@ -20,23 +20,17 @@ public class RotationalAccelerationTuner extends OpModeEX {
 	private double startTime, endTime;
 	private double turn;
 	
-	/**
-	 * called before {@link #initEX()}, solely for initialising all subsystems, ensures that they are registered with the correct {@link org.mercurialftc.mercurialftc.scheduler.Scheduler}, and that their init methods will be run
-	 */
 	@Override
 	public void registerSubsystems() {
 		mecanumDriveBase = new MecanumDriveBase(
 				this,
 				new Pose2D(),
-				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> turn)
+				new DomainSupplier(() -> 0),
+				new DomainSupplier(() -> 0),
+				new DomainSupplier(() -> turn)
 		);
 	}
 	
-	/**
-	 * should contain your regular init code
-	 */
 	@Override
 	public void initEX() {
 		velocitiesSize = 15;
@@ -45,22 +39,18 @@ public class RotationalAccelerationTuner extends OpModeEX {
 		turn = 1;
 	}
 	
-	/**
-	 * registers triggers after the subsystem and regular init code,
-	 * useful for organisation of your OpModeEX, but functionally no different to initialising them at the end of {@link #initEX()}
-	 */
 	@Override
-	public void registerTriggers() {
+	public void registerBindings() {
 		new Trigger(() -> Math.abs(velocity - mecanumDriveBase.getMotionConstants().getMaxRotationalVelocity()) < 0.01 * mecanumDriveBase.getMotionConstants().getMaxRotationalVelocity())
 				.setCommand(
 						new LambdaCommand()
-								.init(() -> {
+								.setInit(() -> {
 									endTime = getElapsedTime().seconds();
 									endVelocity = velocity;
 									turn = 0;
 								})
-								.execute(() -> telemetry.addData("acceleration", endVelocity / (endTime - startTime)))
-								.finish(() -> false)
+								.setExecute(() -> telemetry.addData("acceleration", endVelocity / (endTime - startTime)))
+								.setFinish(() -> false)
 				);
 	}
 	

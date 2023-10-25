@@ -80,21 +80,22 @@ public class ColourMassDetector extends Subsystem {
 	public Command searchInitLoop() {
 		return new LambdaCommand()
 				.setRequirements(this) // make sure we require this subsystem!
+				.setInterruptable(true)
 				.setRunStates(OpModeEX.OpModeEXRunStates.INIT_LOOP) // causes this command to only run during init Loop, and end automatically outside of that
-				.init(() -> {
+				.setInit(() -> {
 					// when the command starts, start the live view and streaming, if not already
 					if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING && visionPortal.getCameraState() != VisionPortal.CameraState.STARTING_STREAM) {
 						visionPortal.resumeStreaming();
 						visionPortal.resumeLiveView();
 					}
 				})
-				.end((interrupted) -> {
+				.setEnd((interrupted) -> {
 					// when the command ends, stop the live view and streaming
 					if (visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING || visionPortal.getCameraState() == VisionPortal.CameraState.STARTING_STREAM) {
 						visionPortal.stopLiveView();
 						visionPortal.stopStreaming();
 					}
 				})
-				.finish(() -> false); // this command "never" finishes (but will end once out of init loop)
+				.setFinish(() -> false); // this command "never" finishes (but will end once out of init loop)
 	}
 }

@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.MecanumDriveBase;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
-import org.mercurialftc.mercurialftc.scheduler.triggers.gamepadex.ContinuousInput;
+import org.mercurialftc.mercurialftc.scheduler.bindings.gamepadex.DomainSupplier;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleDegrees;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleRadians;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
@@ -27,9 +27,9 @@ public class TrackWidthTunerAutomatedTest extends OpModeEX {
 		mecanumDriveBase = new MecanumDriveBase(
 				this,
 				new Pose2D(),
-				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> turn)
+				new DomainSupplier(() -> 0),
+				new DomainSupplier(() -> 0),
+				new DomainSupplier(() -> turn)
 		);
 	}
 	
@@ -46,7 +46,7 @@ public class TrackWidthTunerAutomatedTest extends OpModeEX {
 	}
 	
 	@Override
-	public void registerTriggers() {
+	public void registerBindings() {
 	
 	}
 	

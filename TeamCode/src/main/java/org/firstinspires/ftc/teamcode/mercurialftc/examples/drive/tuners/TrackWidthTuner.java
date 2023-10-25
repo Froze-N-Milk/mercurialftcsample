@@ -5,8 +5,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.MecanumDriveBase;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
-import org.mercurialftc.mercurialftc.scheduler.triggers.gamepadex.ContinuousInput;
+import org.mercurialftc.mercurialftc.scheduler.bindings.gamepadex.DomainSupplier;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
+import org.mercurialftc.mercurialftc.silversurfer.tracker.WheeledTrackerConstants;
 
 @TeleOp(name = "Track Width Tuner")
 public class TrackWidthTuner extends OpModeEX {
@@ -24,9 +25,9 @@ public class TrackWidthTuner extends OpModeEX {
 		mecanumDriveBase = new MecanumDriveBase(
 				this,
 				new Pose2D(),
-				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> 0)
+				new DomainSupplier(() -> 0),
+				new DomainSupplier(() -> 0),
+				new DomainSupplier(() -> 0)
 		);
 	}
 	
@@ -41,7 +42,7 @@ public class TrackWidthTuner extends OpModeEX {
 	}
 	
 	@Override
-	public void registerTriggers() {
+	public void registerBindings() {
 	
 	}
 	
@@ -53,7 +54,7 @@ public class TrackWidthTuner extends OpModeEX {
 	public void startEX() {
 		telemetry.setAutoClear(true);
 		elapsedTime.reset();
-		lateralDistance = mecanumDriveBase.getTracker().getTrackerConstants().getLateralDistance();
+		lateralDistance = ((WheeledTrackerConstants.ThreeWheeledTrackerConstants) mecanumDriveBase.getTracker().getTrackerConstants()).getTrackWidth();
 		mecanumDriveBase.getTracker().reset();
 	}
 	

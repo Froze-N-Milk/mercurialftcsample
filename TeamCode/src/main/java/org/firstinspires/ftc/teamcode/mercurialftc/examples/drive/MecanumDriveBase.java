@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive;
 
+import androidx.annotation.NonNull;
+
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -14,35 +16,48 @@ import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.commands.Command;
 import org.mercurialftc.mercurialftc.scheduler.commands.LambdaCommand;
 import org.mercurialftc.mercurialftc.scheduler.subsystems.Subsystem;
-import org.mercurialftc.mercurialftc.scheduler.triggers.gamepadex.ContinuousInput;
+import org.mercurialftc.mercurialftc.scheduler.bindings.gamepadex.DomainSupplier;
 import org.mercurialftc.mercurialftc.silversurfer.encoderticksconverter.EncoderTicksConverter;
 import org.mercurialftc.mercurialftc.silversurfer.encoderticksconverter.Units;
 import org.mercurialftc.mercurialftc.silversurfer.followable.motionconstants.MecanumMotionConstants;
 import org.mercurialftc.mercurialftc.silversurfer.followable.Wave;
+import org.mercurialftc.mercurialftc.silversurfer.follower.ArbFollower;
 import org.mercurialftc.mercurialftc.silversurfer.follower.GVFWaveFollower;
-import org.mercurialftc.mercurialftc.silversurfer.follower.MecanumArbFollower;
+import org.mercurialftc.mercurialftc.silversurfer.follower.MecanumFollower;
+import org.mercurialftc.mercurialftc.silversurfer.follower.ObstacleAvoidantFollower;
 import org.mercurialftc.mercurialftc.silversurfer.follower.WaveFollower;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Vector2D;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.Angle;
+import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleDegrees;
+import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleRadians;
+import org.mercurialftc.mercurialftc.silversurfer.geometry.obstaclemap.CenterStageObstacleMap;
+import org.mercurialftc.mercurialftc.silversurfer.geometry.obstaclemap.ObstacleMap;
+import org.mercurialftc.mercurialftc.silversurfer.tracker.InsistentThreeWheelTracker;
+import org.mercurialftc.mercurialftc.silversurfer.tracker.ThreeWheelTracker;
 import org.mercurialftc.mercurialftc.silversurfer.tracker.Tracker;
-import org.mercurialftc.mercurialftc.silversurfer.tracker.TrackerConstants;
 import org.mercurialftc.mercurialftc.silversurfer.tracker.TwoWheelTracker;
+import org.mercurialftc.mercurialftc.silversurfer.tracker.WheeledTracker;
+import org.mercurialftc.mercurialftc.silversurfer.tracker.WheeledTrackerConstants;
 import org.mercurialftc.mercurialftc.silversurfer.voltageperformanceenforcer.VoltagePerformanceEnforcer;
 import org.mercurialftc.mercurialftc.util.hardware.Encoder;
 import org.mercurialftc.mercurialftc.util.hardware.IMU_EX;
 import org.mercurialftc.mercurialftc.util.hardware.cachinghardwaredevice.CachingDcMotorEX;
 
 public class MecanumDriveBase extends Subsystem {
-	private final ContinuousInput x, y, t;
+	public static final double ONE_TILE = Units.INCH.toMillimeters(23.75);
+	private final DomainSupplier x, y, t;
 	private final Pose2D startPose;
 	private final ElapsedTime waveTimer;
+	private final Alliance alliance;
 	private DcMotorEx fl, bl, br, fr;
 	private VoltageSensor voltageSensor;
 	private WaveFollower waveFollower;
-	private MecanumArbFollower mecanumArbFollower;
+	private ArbFollower arbFollower;
 	private Tracker tracker;
 	private MecanumMotionConstants motionConstants;
+	private ObstacleMap obstacleMap;
+	private double previousTime;
 	
 	/**
 	 * @param opModeEX  the opModeEX object to register against
@@ -51,8 +66,9 @@ public class MecanumDriveBase extends Subsystem {
 	 * @param y         the y controller
 	 * @param t         the theta controller, positive turns clockwise
 	 */
-	public MecanumDriveBase(OpModeEX opModeEX, Pose2D startPose, ContinuousInput x, ContinuousInput y, ContinuousInput t) {
+	public MecanumDriveBase(OpModeEX opModeEX, Alliance alliance, Pose2D startPose, DomainSupplier x, DomainSupplier y, DomainSupplier t) {
 		super(opModeEX);
+		this.alliance = alliance;
 		this.startPose = startPose;
 		this.x = x;
 		this.y = y;
@@ -60,6 +76,37 @@ public class MecanumDriveBase extends Subsystem {
 		this.waveTimer = new ElapsedTime();
 	}
 	
+	public MecanumDriveBase(OpModeEX opModeEX, Pose2D startPose, DomainSupplier x, DomainSupplier y, DomainSupplier t) {
+		this(opModeEX, Alliance.RED, startPose, x, y, t);
+	}
+	
+	public Pose2D getStartPose() {
+		return startPose;
+	}
+	
+	public ArbFollower getArbFollower() {
+		return arbFollower;
+	}
+	
+	public Alliance getAlliance() {
+		return alliance;
+	}
+	
+	public DomainSupplier getX() {
+		return x;
+	}
+	
+	public DomainSupplier getY() {
+		return y;
+	}
+	
+	public DomainSupplier getT() {
+		return t;
+	}
+	
+	public ObstacleMap getObstacleMap() {
+		return obstacleMap;
+	}
 	
 	@Override
 	public void init() {
@@ -71,125 +118,126 @@ public class MecanumDriveBase extends Subsystem {
 		
 		// set the required motors to reverse
 		fl.setDirection(DcMotorSimple.Direction.REVERSE);
-		bl.setDirection(DcMotorSimple.Direction.FORWARD);
+		bl.setDirection(DcMotorSimple.Direction.REVERSE);
 		br.setDirection(DcMotorSimple.Direction.FORWARD);
 		fr.setDirection(DcMotorSimple.Direction.FORWARD);
 		
 		voltageSensor = opModeEX.hardwareMap.getAll(VoltageSensor.class).iterator().next();
 		
-		
 		VoltagePerformanceEnforcer translationalYEnforcer = new VoltagePerformanceEnforcer(
-				13.695, // volts
-				0.5480339638343823, // amps
-				1563.7458110091459 // in millimeters/second, you can use Units.UNIT.toMillimeters(value) to convert if you have measured some other way
+				13.031,
+				0.9747773604750232,
+				1648.569587035565
 		);
 		
 		VoltagePerformanceEnforcer translationalXEnforcer = new VoltagePerformanceEnforcer(
-				13.975, // volts
-				0.7686673487042971, // amps
-				1123.465776909653 // in millimeters/second, you can use Units.UNIT.toMillimeters(value) to convert if you have measured some other way
+				12.987,
+				1.769415503675299,
+				1050.9146036238537
 		);
 		
 		VoltagePerformanceEnforcer translationalAngledEnforcer = new VoltagePerformanceEnforcer(
-				13.931, // volts
-				0.7242985361348729, // amps
-				1008.932843434795711 // in millimeters/second, you can use Units.UNIT.toMillimeters(value) to convert if you have measured some other way
+				12.983,
+				1.096447867768282,
+				1222.6698612398357
 		);
 		
 		VoltagePerformanceEnforcer rotationalEnforcer = new VoltagePerformanceEnforcer(
-				13.101, // volts
-				0.6024987902362003, // amps
-				3.9969453526299685 // radians/second
+				13.096,
+				0.9797365668388713,
+				5.4708398890705805
 		);
 		
 		double currentVoltage = voltageSensor.getVoltage();
 		
-		// initial untuned motion constants, follow the tuning instructions to reach something like the example final results
-//		motionConstants = new MecanumMotionConstants(
-//				1,
-//				1,
-//				1,
-//				1,
-//				1,
-//				1,
-//				1,
-//				1
-//		);
-		
-		// example final results
+		// replace accelerations
 		motionConstants = new MecanumMotionConstants(
-				translationalYEnforcer.transformVelocity(currentVoltage),
-				translationalXEnforcer.transformVelocity(currentVoltage),
-				translationalAngledEnforcer.transformVelocity(currentVoltage),
-				rotationalEnforcer.transformVelocity(currentVoltage),
-				2229.3175544265337, // set to 1 to start with // in millimeters, you can use Units.UNIT.toMillimeters(value) to convert if you have measured some other way
-				1577.2113772239454, // set to 1 to start with,
-				1393.1682920895462,
-				6.017290762302119
+				translationalYEnforcer.transformVelocity(currentVoltage), // translational y velocity
+				translationalXEnforcer.transformVelocity(currentVoltage), // translational x velocity
+				translationalAngledEnforcer.transformVelocity(currentVoltage), // translational angled velocity
+				rotationalEnforcer.transformVelocity(currentVoltage), // rotational velocity
+				1406.4491188920347, // translational y acceleration
+				1670.8888562062925, // translational x acceleration
+				1311.448455610628, // translational angled acceleration
+				9.943516004740639 // rotational acceleration
 		);
-		
 		
 		IMU_EX imu_ex = new IMU_EX(opModeEX.hardwareMap.get(IMU.class, "imu"), AngleUnit.RADIANS);
 		imu_ex.initialize(new IMU.Parameters(
 				new RevHubOrientationOnRobot(
-						RevHubOrientationOnRobot.LogoFacingDirection.UP,
-						RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
+						RevHubOrientationOnRobot.LogoFacingDirection.BACKWARD,
+						RevHubOrientationOnRobot.UsbFacingDirection.UP
 				)
 		));
 		
 		// replace all, select the tracker which works best for you
 		
-		
-		// insistent three wheeled tracker
-
-//		tracker = new InsistentThreeWheelTracker(
-//				startPose, // needs to be set to the starting pose, which should be the same pose as set for the wave builder
-//				new TrackerConstants.ThreeWheelTrackerConstants(
-//						Units.MILLIMETER,
-//						377.26535034179676, // replace with your own measured constants
-//						-172.5, // replace with your own measured constants,
-//						1, // tune
-//						1, // tune
-//						new EncoderTicksConverter(8192/(Math.PI * 35), Units.MILLIMETER), // replace with your own measured constants
-//						new EncoderTicksConverter(8192/(Math.PI * 35), Units.MILLIMETER), // replace with your own measured constants
-//						new EncoderTicksConverter(8192/(Math.PI * 35), Units.MILLIMETER) // replace with your own measured constants
-//				),
-//				new Encoder(br).setDirection(Encoder.Direction.FORWARD), // check that each encoder increases in the positive direction, if not change their directions!
-//				new Encoder(fr).setDirection(Encoder.Direction.REVERSE),
-//				new Encoder(fl).setDirection(Encoder.Direction.FORWARD),
-//				imu_ex
-//		);
-		
 		// two wheeled tracker
+		
+		// todo: instructions to find the center of rotation offset
+		// with an offset vector of (0, 0)
+		// rotate the robot 180 degrees and align it back to its starting position
+		// your center of rotation offset vector is: (-Y / 2, X / 2)
 		
 		tracker = new TwoWheelTracker(
 				startPose, // needs to be set to the starting pose, which should be the same pose as set for the wave builder
-				new TrackerConstants.TwoWheelTrackerConstants(
-						Units.MILLIMETER,
-						-172.5, // replace with your own measured constants,
-						(3000.0 / 2935.3374871243486), // tune
-						(3000.0 / 2943.6016223376037), // tune
+				new WheeledTrackerConstants.TwoWheeledTrackerConstants(
+						new Vector2D(-302.2 / 2.0, 416.9 / 2.0),
+						(3000.0 / 2953.6417571405955),
+						(3000.0 / 2961.3925604638556),
 						new EncoderTicksConverter(8192 / (Math.PI * 35), Units.MILLIMETER), // replace with your own measured constants
 						new EncoderTicksConverter(8192 / (Math.PI * 35), Units.MILLIMETER) // replace with your own measured constants
 				),
-				new Encoder(br).setDirection(Encoder.Direction.FORWARD), // check that each encoder increases in the positive direction, if not change their directions!
-				new Encoder(fr).setDirection(Encoder.Direction.FORWARD),
+				new Encoder(fl).setDirection(Encoder.Direction.FORWARD), // check that each encoder increases in the positive direction, if not change their directions!
+				new Encoder(bl).setDirection(Encoder.Direction.REVERSE),
 				imu_ex
 		);
 		
+		tracker = new ThreeWheelTracker(
+				startPose, // needs to be set to the starting pose, which should be the same pose as set for the wave builder
+				new WheeledTrackerConstants.ThreeWheeledTrackerConstants(
+						new Vector2D(-319.2 / 2.0, 0.0),
+						(3000.0 / 2957.865463440085),
+						(3000.0 / 2950.4555205066968),
+						new EncoderTicksConverter(8192 / (Math.PI * 35), Units.MILLIMETER),
+						new EncoderTicksConverter(8192 / (Math.PI * 35), Units.MILLIMETER), // replace with your own measured constants
+						new EncoderTicksConverter(8192 / (Math.PI * 35), Units.MILLIMETER), // replace with your own measured constants
+						392.93438
+				),
+				new Encoder(fl).setDirection(Encoder.Direction.FORWARD), // check that each encoder increases in the positive direction, if not change their directions!
+				new Encoder(fr).setDirection(Encoder.Direction.REVERSE),
+				new Encoder(bl).setDirection(Encoder.Direction.REVERSE)
+		);
 		
-		mecanumArbFollower = new MecanumArbFollower(
+		MecanumFollower mecanumFollower = new MecanumFollower(
 				motionConstants,
 				tracker,
 				fl, bl, br, fr
 		);
 		
+		obstacleMap = new CenterStageObstacleMap(
+				Units.MILLIMETER,
+				ONE_TILE,
+				200
+		);
+		
+		arbFollower = new ObstacleAvoidantFollower(
+				mecanumFollower,
+				mecanumFollower,
+				motionConstants,
+				tracker,
+				obstacleMap
+		);
+
+//		arbFollower = mecanumFollower;
+		
 		waveFollower = new GVFWaveFollower(
-				mecanumArbFollower,
+				(WaveFollower) arbFollower, // we know its a wave follower too, no harm in this
+				motionConstants,
 				tracker
 		);
 
-//		waveFollower = mecanumArbFollower;
+//		waveFollower = mecanumFollower;
 		
 		getTracker().reset(); // resets the encoders
 		
@@ -213,10 +261,17 @@ public class MecanumDriveBase extends Subsystem {
 	
 	@Override
 	public void defaultCommandExecute() {
-		mecanumArbFollower.follow(
-				new Vector2D(x.getValue(), y.getValue()),
-				t.getValue()
+		double currentTime = opModeEX.getElapsedTime().seconds();
+		
+		Vector2D vector2D = new Vector2D(x.getAsDouble(), y.getAsDouble()).rotate(alliance.getRotationAngle());
+		
+		arbFollower.follow(
+				vector2D,
+				t.getAsDouble(),
+				currentTime - previousTime
 		);
+		
+		previousTime = currentTime;
 	}
 	
 	@Override
@@ -226,7 +281,7 @@ public class MecanumDriveBase extends Subsystem {
 	
 	/**
 	 * an example command generator to set the robot to follow a prebuilt wave, for use during auto to prevent player inputs
-	 * <p>requires {@link Command#queue()} to be called on this before it will run</p>
+	 * <p>requires {@link org.mercurialftc.mercurialftc.scheduler.commands.Command#queue()} to be called on this before it will run</p>
 	 *
 	 * @param wave the wave to follow
 	 * @return the command to queue
@@ -234,14 +289,14 @@ public class MecanumDriveBase extends Subsystem {
 	public Command followWave(Wave wave) {
 		return new LambdaCommand()
 				.setRequirements(this)
-				.init(() -> {
+				.setInit(() -> {
 					waveFollower.setWave(wave);
 					waveTimer.reset();
 				})
-				.execute(() -> {
+				.setExecute(() -> {
 					waveFollower.update(waveTimer.seconds());
 				})
-				.finish(waveFollower::isFinished)
+				.setFinish(waveFollower::isFinished)
 				.setInterruptable(true);
 	}
 	
@@ -254,38 +309,26 @@ public class MecanumDriveBase extends Subsystem {
 	public Command followWaveInterruptible(Wave wave) {
 		return new LambdaCommand()
 				.setRequirements(this)
-				.init(() -> {
+				.setInit(() -> {
 					waveFollower.setWave(wave);
 					waveTimer.reset();
 				})
-				.execute(() -> {
+				.setExecute(() -> {
 					waveFollower.update(waveTimer.seconds());
 				})
-				.finish(() -> waveFollower.isFinished() || x.getValue() != 0.0 || y.getValue() != 0.0 || t.getValue() != 0.0)
+				.setFinish(() -> waveFollower.isFinished() || x.getAsDouble() != 0.0 || y.getAsDouble() != 0.0 || t.getAsDouble() != 0.0)
 				.setInterruptable(true);
 	}
 	
 	/**
 	 * @return the drive base's position tracker
 	 */
-	public Tracker getTracker() {
-		return tracker;
-	}
-	
-	public void resetHeading() {
-		tracker.resetHeading();
-	}
-	
-	public void resetHeading(Angle heading) {
-		tracker.resetHeading(heading);
+	public WheeledTracker getTracker() {
+		return (WheeledTracker) tracker;
 	}
 	
 	public MecanumMotionConstants getMotionConstants() {
 		return motionConstants;
-	}
-	
-	public WaveFollower getWaveFollower() {
-		return waveFollower;
 	}
 	
 	public double getCurrent() {
@@ -301,4 +344,16 @@ public class MecanumDriveBase extends Subsystem {
 		return voltageSensor;
 	}
 	
+	public enum Alliance {
+		BLUE(new AngleDegrees(180)), RED(new AngleDegrees(0));
+		private final AngleRadians rotationAngle;
+		
+		Alliance(@NonNull Angle rotationAngle) {
+			this.rotationAngle = rotationAngle.toAngleRadians();
+		}
+		
+		public Angle getRotationAngle() {
+			return rotationAngle;
+		}
+	}
 }

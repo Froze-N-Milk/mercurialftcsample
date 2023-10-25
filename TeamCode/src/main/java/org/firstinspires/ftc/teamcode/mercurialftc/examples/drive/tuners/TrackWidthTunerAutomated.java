@@ -8,10 +8,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.MecanumDriveBase;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
-import org.mercurialftc.mercurialftc.scheduler.triggers.gamepadex.ContinuousInput;
+import org.mercurialftc.mercurialftc.scheduler.bindings.gamepadex.DomainSupplier;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleDegrees;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleRadians;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
+import org.mercurialftc.mercurialftc.silversurfer.tracker.WheeledTrackerConstants;
 import org.mercurialftc.mercurialftc.util.hardware.ScheduledIMU_EX;
 
 @TeleOp(name = "Track Width Tuner (Automated Version)")
@@ -34,11 +35,19 @@ public class TrackWidthTunerAutomated extends OpModeEX {
 		mecanumDriveBase = new MecanumDriveBase(
 				this,
 				new Pose2D(),
-				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> 0),
-				new ContinuousInput(() -> turn)
+				new DomainSupplier(() -> 0),
+				new DomainSupplier(() -> 0),
+				new DomainSupplier(() -> turn)
 		);
-		IMU_EX = new ScheduledIMU_EX(this, new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP, RevHubOrientationOnRobot.UsbFacingDirection.FORWARD)), AngleUnit.DEGREES);
+		IMU_EX = new ScheduledIMU_EX(this,
+				new IMU.Parameters(
+						new RevHubOrientationOnRobot(
+								RevHubOrientationOnRobot.LogoFacingDirection.BACKWARD,
+								RevHubOrientationOnRobot.UsbFacingDirection.UP
+						)
+				),
+				AngleUnit.DEGREES
+		);
 	}
 	
 	@Override
@@ -56,7 +65,7 @@ public class TrackWidthTunerAutomated extends OpModeEX {
 	}
 	
 	@Override
-	public void registerTriggers() {
+	public void registerBindings() {
 	
 	}
 	
@@ -68,7 +77,7 @@ public class TrackWidthTunerAutomated extends OpModeEX {
 	public void startEX() {
 		telemetry.setAutoClear(true);
 		elapsedTime.reset();
-		lateralDistance = mecanumDriveBase.getTracker().getTrackerConstants().getLateralDistance();
+		lateralDistance = ((WheeledTrackerConstants.ThreeWheeledTrackerConstants) mecanumDriveBase.getTracker().getTrackerConstants()).getTrackWidth();
 		mecanumDriveBase.getTracker().reset();
 	}
 	
@@ -81,13 +90,13 @@ public class TrackWidthTunerAutomated extends OpModeEX {
 		measuredTurn += previousPose.getTheta().toAngleDegrees().findShortestDistance(measuredPose.getTheta());
 		
 		telemetry.addData("current odometry measured turn", measuredTurn);
+		telemetry.addData("current imu measured turn", IMUmeasuredTurn);
 		
 		previousPose = measuredPose;
 		
-		
 		double error = IMUmeasuredTurn.findShortestDistance(setPoint); // in degrees
 		
-		double adjustedError = (error) / (Math.E * (Math.abs(error)) + 8);
+		double adjustedError = ((error) / (Math.E * (Math.abs(error)) + 15));
 		
 		if (finished) {
 			turn = 0;
@@ -102,15 +111,15 @@ public class TrackWidthTunerAutomated extends OpModeEX {
 				elapsedTime.reset();
 			}
 			
-			turn = adjustedError * mecanumDriveBase.getMotionConstants().getMaxRotationalVelocity();
+			turn = adjustedError;
 		} else {
-			if (Math.abs(error) < 0.2 && elapsedTime.seconds() > 2) {
+			if (Math.abs(error) < 3 && elapsedTime.seconds() > 0.5) {
 				finished = true;
 			} else if (!finished) {
 				if (Math.abs(error) >= 0.2) {
 					elapsedTime.reset();
 				}
-				turn = adjustedError * mecanumDriveBase.getMotionConstants().getMaxRotationalVelocity();
+				turn = adjustedError;
 			}
 		}
 		telemetry.addData("error", error);

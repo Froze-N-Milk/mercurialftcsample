@@ -1,11 +1,14 @@
 package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive;
 
+import static org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.MecanumDriveBase.ONE_TILE;
+
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.commands.LambdaCommand;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Vector2D;
+import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleDegrees;
 
 @TeleOp(name = "Tracker test")
 public class TrackerTest extends OpModeEX {
@@ -15,7 +18,9 @@ public class TrackerTest extends OpModeEX {
 	public void registerSubsystems() {
 		mecanumDriveBase = new MecanumDriveBase(
 				this,
-				new Pose2D(),
+				MecanumDriveBase.Alliance.BLUE,
+				new Pose2D(1.5 * ONE_TILE, 2.5 * ONE_TILE, new AngleDegrees(180)),
+//				new Pose2D(),
 				gamepadEX1().leftX(),
 				gamepadEX1().leftY(),
 				gamepadEX1().rightX().invert()
@@ -27,9 +32,9 @@ public class TrackerTest extends OpModeEX {
 	}
 	
 	@Override
-	public void registerTriggers() {
-		gamepadEX1().left_bumper().onPress(
-				new LambdaCommand().init(mecanumDriveBase.getTracker()::reset)
+	public void registerBindings() {
+		gamepadEX1().left_bumper().onTrue(
+				new LambdaCommand().setInit(mecanumDriveBase.getTracker()::reset)
 		);
 	}
 	
@@ -39,19 +44,14 @@ public class TrackerTest extends OpModeEX {
 	
 	@Override
 	public void startEX() {
-		telemetry.setAutoClear(true);
 		mecanumDriveBase.getTracker().reset();
 	}
 	
 	@Override
 	public void loopEX() {
-		telemetry.addData("X", mecanumDriveBase.getTracker().getPose2D().getX());
-		telemetry.addData("Y", mecanumDriveBase.getTracker().getPose2D().getY());
-		telemetry.addData("THETA (degrees)", mecanumDriveBase.getTracker().getPose2D().getTheta().getDegrees());
-		telemetry.addData("total displacement", new Vector2D(mecanumDriveBase.getTracker().getPose2D().getX(), mecanumDriveBase.getTracker().getPose2D().getY()).getMagnitude());
-		telemetry.addData("outputMagnitude", new Vector2D(gamepadEX1().leftX().getValue(), gamepadEX1().leftY().getValue()).getMagnitude());
-		telemetry.addData("outputDirection", new Vector2D(gamepadEX1().leftX().getValue(), gamepadEX1().leftY().getValue()).getHeading().getDegrees());
-		
+		telemetry.addData("position", mecanumDriveBase.getTracker().getPose2D());
+		telemetry.addData("outputMagnitude", new Vector2D(gamepadEX1().leftX().getAsDouble(), gamepadEX1().leftY().getAsDouble()).getMagnitude());
+		telemetry.addData("outputDirection", new Vector2D(gamepadEX1().leftX().getAsDouble(), gamepadEX1().leftY().getAsDouble()).getHeading().getDegrees());
 	}
 	
 	@Override

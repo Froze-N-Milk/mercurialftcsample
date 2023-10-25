@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.opencv.core.Scalar;
 
-//@Disabled // remove this line to have this show up on your robot
+@Disabled // remove this line to have this show up on your robot
 @TeleOp
 public class ColourMassDetectionOpModeEX extends OpModeEX {
 	private ColourMassDetector colourMassDetector;
@@ -28,7 +28,7 @@ public class ColourMassDetectionOpModeEX extends OpModeEX {
 	}
 	
 	@Override
-	public void registerTriggers() {
+	public void registerBindings() {
 	
 	}
 	
