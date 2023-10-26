@@ -47,22 +47,20 @@ public class DemoSubsystem extends Subsystem {
 	
 	@Override
 	public void defaultCommandExecute() {
-	
+		PIDupdate();
 	}
 	
+	/**
+	 * sets up the PID loop handled in the default command to run to a new target position
+	 * <p>note that this command does not require the subsystem, this is because it should not be interrupting as it does not need to manipulate the hardware devices directly, and there is no harm in running it, it also ends instantly</p>
+	 *
+	 * @param targetPosition new target position
+	 * @return a command with the specified behaviour
+	 */
 	public Command runTo(int targetPosition) {
 		return new LambdaCommand()
-				.setRequirements(this)
-				.setRunStates(OpModeEX.OpModeEXRunStates.LOOP)
 				.setInterruptible(true)
-				.setInit(() -> {
-					this.targetPosition = targetPosition;
-					this.i = 0;
-					this.previousTime = opModeEX.getElapsedTime().seconds();
-					this.previousError = targetPosition - position;
-				})
-				.setExecute(this::PIDupdate)
-				.setFinish(() -> false);
+				.setInit(() -> prepPID(targetPosition));
 	}
 	
 	public Command runTo(@NonNull Positions position) {
