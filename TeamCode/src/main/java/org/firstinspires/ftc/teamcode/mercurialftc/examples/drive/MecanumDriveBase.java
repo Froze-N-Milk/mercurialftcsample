@@ -170,15 +170,7 @@ public class MecanumDriveBase extends Subsystem {
 				)
 		));
 		
-		// replace all, select the tracker which works best for you
-		
 		// two wheeled tracker
-		
-		// todo: instructions to find the center of rotation offset
-		// with an offset vector of (0, 0)
-		// rotate the robot 180 degrees and align it back to its starting position
-		// your center of rotation offset vector is: (-Y / 2, X / 2)
-
 //		tracker = new TwoWheelTracker(
 //				startPose, // needs to be set to the starting pose, which should be the same pose as set for the wave builder
 //				new WheeledTrackerConstants.TwoWheeledTrackerConstants(
@@ -193,6 +185,7 @@ public class MecanumDriveBase extends Subsystem {
 //				imu_ex
 //		);
 		
+		// three wheeled tracker
 		tracker = new ThreeWheelTracker(
 				startPose, // needs to be set to the starting pose, which should be the same pose as set for the wave builder
 				new WheeledTrackerConstants.ThreeWheeledTrackerConstants(
