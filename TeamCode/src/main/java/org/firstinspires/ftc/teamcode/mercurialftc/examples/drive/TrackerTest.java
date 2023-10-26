@@ -1,14 +1,11 @@
 package org.firstinspires.ftc.teamcode.mercurialftc.examples.drive;
 
-import static org.firstinspires.ftc.teamcode.mercurialftc.examples.drive.MecanumDriveBase.ONE_TILE;
-
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.mercurialftc.mercurialftc.scheduler.OpModeEX;
 import org.mercurialftc.mercurialftc.scheduler.commands.LambdaCommand;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Pose2D;
 import org.mercurialftc.mercurialftc.silversurfer.geometry.Vector2D;
-import org.mercurialftc.mercurialftc.silversurfer.geometry.angle.AngleDegrees;
 
 @TeleOp(name = "Tracker test")
 public class TrackerTest extends OpModeEX {
@@ -18,9 +15,8 @@ public class TrackerTest extends OpModeEX {
 	public void registerSubsystems() {
 		mecanumDriveBase = new MecanumDriveBase(
 				this,
-				MecanumDriveBase.Alliance.BLUE,
-				new Pose2D(1.5 * ONE_TILE, 2.5 * ONE_TILE, new AngleDegrees(180)),
-//				new Pose2D(),
+				MecanumDriveBase.Alliance.RED,
+				new Pose2D(),
 				gamepadEX1().leftX(),
 				gamepadEX1().leftY(),
 				gamepadEX1().rightX().invert()

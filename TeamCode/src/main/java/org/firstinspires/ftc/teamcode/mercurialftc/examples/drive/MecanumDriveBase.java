@@ -178,20 +178,20 @@ public class MecanumDriveBase extends Subsystem {
 		// with an offset vector of (0, 0)
 		// rotate the robot 180 degrees and align it back to its starting position
 		// your center of rotation offset vector is: (-Y / 2, X / 2)
-		
-		tracker = new TwoWheelTracker(
-				startPose, // needs to be set to the starting pose, which should be the same pose as set for the wave builder
-				new WheeledTrackerConstants.TwoWheeledTrackerConstants(
-						new Vector2D(-302.2 / 2.0, 416.9 / 2.0),
-						(3000.0 / 2953.6417571405955),
-						(3000.0 / 2961.3925604638556),
-						new EncoderTicksConverter(8192 / (Math.PI * 35), Units.MILLIMETER), // replace with your own measured constants
-						new EncoderTicksConverter(8192 / (Math.PI * 35), Units.MILLIMETER) // replace with your own measured constants
-				),
-				new Encoder(fl).setDirection(Encoder.Direction.FORWARD), // check that each encoder increases in the positive direction, if not change their directions!
-				new Encoder(bl).setDirection(Encoder.Direction.REVERSE),
-				imu_ex
-		);
+
+//		tracker = new TwoWheelTracker(
+//				startPose, // needs to be set to the starting pose, which should be the same pose as set for the wave builder
+//				new WheeledTrackerConstants.TwoWheeledTrackerConstants(
+//						new Vector2D(-302.2 / 2.0, 416.9 / 2.0),
+//						(3000.0 / 2953.6417571405955),
+//						(3000.0 / 2961.3925604638556),
+//						new EncoderTicksConverter(8192 / (Math.PI * 35), Units.MILLIMETER), // replace with your own measured constants
+//						new EncoderTicksConverter(8192 / (Math.PI * 35), Units.MILLIMETER) // replace with your own measured constants
+//				),
+//				new Encoder(fl).setDirection(Encoder.Direction.FORWARD), // check that each encoder increases in the positive direction, if not change their directions!
+//				new Encoder(bl).setDirection(Encoder.Direction.REVERSE),
+//				imu_ex
+//		);
 		
 		tracker = new ThreeWheelTracker(
 				startPose, // needs to be set to the starting pose, which should be the same pose as set for the wave builder
