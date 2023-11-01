@@ -4,6 +4,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+//Removed an unsuported class for EOCV
 //import android.text.TextPaint;
 
 import androidx.annotation.NonNull;
@@ -26,6 +27,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 	private final DoubleSupplier minArea, left, right;
 	private final Scalar upper; // lower bounds for masking
 	private final Scalar lower; // upper bounds for masking
+	//Removed becuase Unsuported in EOCV
 	//private final TextPaint textPaint;
 	private final Paint linePaint;
 	private final ArrayList<MatOfPoint> contours;
@@ -49,6 +51,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 
 	public ColourMassDetectionProcessor() {
 		this.contours = new ArrayList<>();
+		//These are very tight ranges for the blue indicator
 		this.lower = new Scalar(90, 160, 90); // the lower hsv threshold for your detection
 		this.upper = new Scalar(105, 200, 255); // the upper hsv threshold for your detection
 		this.minArea = () -> 100;
@@ -56,12 +59,13 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 		this.right = () -> 426; // the left dividing line, in this case the right third of the frame
 
 		// setting up the paint for the text in the center of the box
+		//The text doesnt work because textPaint doesn't work in EOCV
 		//textPaint = new TextPaint();
 		//textPaint.setColor(Color.GREEN); // you may want to change this
 		//textPaint.setTextAlign(Paint.Align.CENTER);
 		//textPaint.setAntiAlias(true);
 		//textPaint.setTextSize(40); // or this
-	//	textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+		//textPaint.setTypeface(Typeface.DEFAULT_BOLD);
 
 		// setting up the paint for the lines that comprise the box
 		linePaint = new Paint();
@@ -169,7 +173,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 		// updates the previous prop position to help us check for changes
 		previousPropPosition = propPosition;
 
-//		Imgproc.drawContours(frame, contours, -1, colour);
+		//Imgproc.drawContours(frame, contours, -1, colour);
 		
 		// returns back the edited image, don't worry about this too much
 		return frame;
@@ -198,7 +202,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 			canvas.drawLine(points[2], points[1], points[2], points[3], linePaint);
 			
 			String text = String.format(Locale.ENGLISH, "%s", recordedPropPosition.toString());
-			
+			//another class not supported in EOCV
 			//canvas.drawText(text, (float) largestContourX * scaleBmpPxToCanvasPx, (float) largestContourY * scaleBmpPxToCanvasPx, textPaint);
 		}
 	}
