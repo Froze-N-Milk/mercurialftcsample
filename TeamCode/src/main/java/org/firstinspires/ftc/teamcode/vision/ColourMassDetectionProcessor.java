@@ -1,5 +1,6 @@
-package org.firstinspires.ftc.teamcode.vision;
+package org.firstinspires.ftc.teamcode.util;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -8,8 +9,12 @@ import android.text.TextPaint;
 
 import androidx.annotation.NonNull;
 
+import org.firstinspires.ftc.robotcore.external.function.Consumer;
+import org.firstinspires.ftc.robotcore.external.function.Continuation;
+import org.firstinspires.ftc.robotcore.external.stream.CameraStreamSource;
 import org.firstinspires.ftc.robotcore.internal.camera.calibration.CameraCalibration;
 import org.firstinspires.ftc.vision.VisionProcessor;
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
@@ -20,9 +25,10 @@ import org.opencv.imgproc.Moments;
 
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.DoubleSupplier;
 
-public class ColourMassDetectionProcessor implements VisionProcessor {
+public class ColourMassDetectionProcessor implements VisionProcessor, CameraStreamSource {
 	private final DoubleSupplier minArea, left, right;
 	private final Scalar upper; // lower bounds for masking
 	private final Scalar lower; // upper bounds for masking
@@ -36,7 +42,9 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 	private MatOfPoint largestContour;
 	private PropPositions previousPropPosition;
 	private PropPositions recordedPropPosition = PropPositions.UNFOUND;
-	
+	private final AtomicReference<Bitmap> lastFrame = new AtomicReference<>(Bitmap.createBitmap(1, 1, Bitmap.Config.RGB_565));
+
+
 	/**
 	 * Uses HSVs for the scalars
 	 *
@@ -73,6 +81,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 	
 	@Override
 	public void init(int width, int height, CameraCalibration calibration) {
+		lastFrame.set(Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565));
 		// this method comes with all VisionProcessors, we just don't need to do anything here, and you dont need to call it
 	}
 	
@@ -99,6 +108,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 	
 	@Override
 	public Object processFrame(Mat frame, long captureTimeNanos) {
+
 		// this method processes the image (frame) taken by the camera, and tries to find a suitable prop
 		// you dont need to call it
 		
@@ -135,6 +145,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 				largestContourArea = area;
 			}
 		}
+
 		
 		// sets up the center points of our largest contour to be -1 (offscreen)
 		largestContourX = largestContourY = -1;
@@ -172,6 +183,9 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 //		Imgproc.drawContours(frame, contours, -1, colour);
 		
 		// returns back the edited image, don't worry about this too much
+		Bitmap b = Bitmap.createBitmap(frame.width(), frame.height(), Bitmap.Config.RGB_565);
+		Utils.matToBitmap(frame, b);
+		lastFrame.set(b);
 		return frame;
 	}
 	
@@ -225,5 +239,9 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 		MIDDLE,
 		RIGHT,
 		UNFOUND;
+	}
+	@Override
+	public void getFrameBitmap(Continuation<? extends Consumer<Bitmap>> continuation) {
+		continuation.dispatch(bitmapConsumer -> bitmapConsumer.accept(lastFrame.get()));
 	}
 }
