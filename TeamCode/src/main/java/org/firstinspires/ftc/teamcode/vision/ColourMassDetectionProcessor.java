@@ -30,6 +30,8 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 	private final Paint linePaint;
 	private final ArrayList<MatOfPoint> contours;
 	private final Mat hierarchy = new Mat();
+	private final Mat sel1 = new Mat(); // these facilitate capturing through 0
+	private final Mat sel2 = new Mat();
 	private double largestContourX;
 	private double largestContourY;
 	private double largestContourArea;
@@ -106,8 +108,20 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 		Imgproc.cvtColor(frame, frame, Imgproc.COLOR_RGB2HSV);
 		// thats why you need to give your scalar upper and lower bounds as HSV values
 		
-		// this method makes the colour image black and white, with everything between your upper and lower bound values as white, and everything else black
-		Core.inRange(frame, lower, upper, frame);
+		if (upper.val[0] < lower.val[0]) {
+			// makes new scalars for the upper [upper, 0] detection, places the result in sel1
+			Core.inRange(frame, new Scalar(upper.val[0], lower.val[1], lower.val[2]), new Scalar(0, upper.val[1], upper.val[2]), sel1);
+			// makes new scalars for the lower [0, lower] detection, places the result in sel2
+			Core.inRange(frame, new Scalar(0, lower.val[1], lower.val[2]), new Scalar(lower.val[0], upper.val[1], upper.val[2]), sel2);
+			
+			// combines the selections
+			Core.bitwise_or(sel1, sel2, frame);
+		} else {
+			// this process is simpler if we are not trying to wrap through 0
+			// this method makes the colour image black and white, with everything between your upper and lower bound values as white, and everything else black
+			Core.inRange(frame, lower, upper, frame);
+		}
+		
 		
 		// this empties out the list of found contours, otherwise we would keep all the old ones, read on to find out more about contours!
 		contours.clear();
@@ -217,6 +231,8 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 	
 	public void close() {
 		hierarchy.release();
+		sel1.release();
+		sel2.release();
 	}
 	
 	// the enum that stores the 4 possible prop positions
