@@ -1,20 +1,16 @@
-package org.firstinspires.ftc.teamcode.vision;
+package org.firstinspires.ftc.teamcode.processor;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
-import android.text.TextPaint;
+//Removed an unsuported class for EOCV
+//import android.text.TextPaint;
 
 import androidx.annotation.NonNull;
 
-import org.firstinspires.ftc.robotcore.external.function.Consumer;
-import org.firstinspires.ftc.robotcore.external.function.Continuation;
-import org.firstinspires.ftc.robotcore.external.stream.CameraStreamSource;
 import org.firstinspires.ftc.robotcore.internal.camera.calibration.CameraCalibration;
 import org.firstinspires.ftc.vision.VisionProcessor;
-import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
@@ -25,28 +21,24 @@ import org.opencv.imgproc.Moments;
 
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.DoubleSupplier;
 
-public class ColourMassDetectionProcessor implements VisionProcessor, CameraStreamSource {
+public class ColourMassDetectionProcessor implements VisionProcessor {
 	private final DoubleSupplier minArea, left, right;
 	private final Scalar upper; // lower bounds for masking
 	private final Scalar lower; // upper bounds for masking
-	private final TextPaint textPaint;
+	//Removed becuase Unsuported in EOCV
+	//private final TextPaint textPaint;
 	private final Paint linePaint;
 	private final ArrayList<MatOfPoint> contours;
 	private final Mat hierarchy = new Mat();
-	private final Mat sel1 = new Mat(); // these facilitate capturing through 0
-	private final Mat sel2 = new Mat();
 	private double largestContourX;
 	private double largestContourY;
 	private double largestContourArea;
 	private MatOfPoint largestContour;
 	private PropPositions previousPropPosition;
 	private PropPositions recordedPropPosition = PropPositions.UNFOUND;
-	private final AtomicReference<Bitmap> lastFrame = new AtomicReference<>(Bitmap.createBitmap(1, 1, Bitmap.Config.RGB_565));
-
-
+	
 	/**
 	 * Uses HSVs for the scalars
 	 *
@@ -56,22 +48,25 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 	 * @param left    the dividing point for the prop to be on the left
 	 * @param right   the diving point for the prop to be on the right
 	 */
-	public ColourMassDetectionProcessor(@NonNull Scalar lower, @NonNull Scalar upper, DoubleSupplier minArea, DoubleSupplier left, DoubleSupplier right) {
+
+	public ColourMassDetectionProcessor() {
 		this.contours = new ArrayList<>();
-		this.lower = lower;
-		this.upper = upper;
-		this.minArea = minArea;
-		this.left = left;
-		this.right = right;
-		
+		//These are very tight ranges for the blue indicator
+		this.lower = new Scalar(90, 160, 90); // the lower hsv threshold for your detection
+		this.upper = new Scalar(105, 200, 255); // the upper hsv threshold for your detection
+		this.minArea = () -> 100;
+		this.left = () -> 213; // the left dividing line, in this case the left third of the frame
+		this.right = () -> 426; // the left dividing line, in this case the right third of the frame
+
 		// setting up the paint for the text in the center of the box
-		textPaint = new TextPaint();
-		textPaint.setColor(Color.GREEN); // you may want to change this
-		textPaint.setTextAlign(Paint.Align.CENTER);
-		textPaint.setAntiAlias(true);
-		textPaint.setTextSize(40); // or this
-		textPaint.setTypeface(Typeface.DEFAULT_BOLD);
-		
+		//The text doesnt work because textPaint doesn't work in EOCV
+		//textPaint = new TextPaint();
+		//textPaint.setColor(Color.GREEN); // you may want to change this
+		//textPaint.setTextAlign(Paint.Align.CENTER);
+		//textPaint.setAntiAlias(true);
+		//textPaint.setTextSize(40); // or this
+		//textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+
 		// setting up the paint for the lines that comprise the box
 		linePaint = new Paint();
 		linePaint.setColor(Color.GREEN); // you may want to change this
@@ -80,10 +75,8 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 		linePaint.setStrokeCap(Paint.Cap.ROUND);
 		linePaint.setStrokeJoin(Paint.Join.ROUND);
 	}
-	
 	@Override
 	public void init(int width, int height, CameraCalibration calibration) {
-		lastFrame.set(Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565));
 		// this method comes with all VisionProcessors, we just don't need to do anything here, and you dont need to call it
 	}
 	
@@ -110,7 +103,6 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 	
 	@Override
 	public Object processFrame(Mat frame, long captureTimeNanos) {
-
 		// this method processes the image (frame) taken by the camera, and tries to find a suitable prop
 		// you dont need to call it
 		
@@ -118,20 +110,8 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 		Imgproc.cvtColor(frame, frame, Imgproc.COLOR_RGB2HSV);
 		// thats why you need to give your scalar upper and lower bounds as HSV values
 		
-		if (upper.val[0] < lower.val[0]) {
-			// makes new scalars for the upper [upper, 0] detection, places the result in sel1
-			Core.inRange(frame, new Scalar(upper.val[0], lower.val[1], lower.val[2]), new Scalar(0, upper.val[1], upper.val[2]), sel1);
-			// makes new scalars for the lower [0, lower] detection, places the result in sel2
-			Core.inRange(frame, new Scalar(0, lower.val[1], lower.val[2]), new Scalar(lower.val[0], upper.val[1], upper.val[2]), sel2);
-			
-			// combines the selections
-			Core.bitwise_or(sel1, sel2, frame);
-		} else {
-			// this process is simpler if we are not trying to wrap through 0
-			// this method makes the colour image black and white, with everything between your upper and lower bound values as white, and everything else black
-			Core.inRange(frame, lower, upper, frame);
-		}
-		
+		// this method makes the colour image black and white, with everything between your upper and lower bound values as white, and everything else black
+		Core.inRange(frame, lower, upper, frame);
 		
 		// this empties out the list of found contours, otherwise we would keep all the old ones, read on to find out more about contours!
 		contours.clear();
@@ -159,7 +139,6 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 				largestContourArea = area;
 			}
 		}
-
 		
 		// sets up the center points of our largest contour to be -1 (offscreen)
 		largestContourX = largestContourY = -1;
@@ -194,12 +173,9 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 		// updates the previous prop position to help us check for changes
 		previousPropPosition = propPosition;
 
-//		Imgproc.drawContours(frame, contours, -1, colour);
+		//Imgproc.drawContours(frame, contours, -1, colour);
 		
 		// returns back the edited image, don't worry about this too much
-		Bitmap b = Bitmap.createBitmap(frame.width(), frame.height(), Bitmap.Config.RGB_565);
-		Utils.matToBitmap(frame, b);
-		lastFrame.set(b);
 		return frame;
 	}
 	
@@ -226,8 +202,8 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 			canvas.drawLine(points[2], points[1], points[2], points[3], linePaint);
 			
 			String text = String.format(Locale.ENGLISH, "%s", recordedPropPosition.toString());
-			
-			canvas.drawText(text, (float) largestContourX * scaleBmpPxToCanvasPx, (float) largestContourY * scaleBmpPxToCanvasPx, textPaint);
+			//another class not supported in EOCV
+			//canvas.drawText(text, (float) largestContourX * scaleBmpPxToCanvasPx, (float) largestContourY * scaleBmpPxToCanvasPx, textPaint);
 		}
 	}
 	
@@ -245,8 +221,6 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 	
 	public void close() {
 		hierarchy.release();
-		sel1.release();
-		sel2.release();
 	}
 	
 	// the enum that stores the 4 possible prop positions
@@ -255,9 +229,5 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 		MIDDLE,
 		RIGHT,
 		UNFOUND;
-	}
-	@Override
-	public void getFrameBitmap(Continuation<? extends Consumer<Bitmap>> continuation) {
-		continuation.dispatch(bitmapConsumer -> bitmapConsumer.accept(lastFrame.get()));
 	}
 }
