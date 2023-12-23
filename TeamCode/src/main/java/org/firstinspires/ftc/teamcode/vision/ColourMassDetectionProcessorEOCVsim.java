@@ -1,13 +1,10 @@
-package org.firstinspires.ftc.teamcode.processor;
+package org.firstinspires.ftc.teamcode.vision;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Typeface;
 //Removed an unsuported class for EOCV
 //import android.text.TextPaint;
-
-import androidx.annotation.NonNull;
 
 import org.firstinspires.ftc.robotcore.internal.camera.calibration.CameraCalibration;
 import org.firstinspires.ftc.vision.VisionProcessor;
@@ -23,11 +20,11 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.function.DoubleSupplier;
 
-public class ColourMassDetectionProcessor implements VisionProcessor {
+public class ColourMassDetectionProcessorEOCVsim implements VisionProcessor {
 	private final DoubleSupplier minArea, left, right;
 	private final Scalar upper; // lower bounds for masking
 	private final Scalar lower; // upper bounds for masking
-	//Removed becuase Unsuported in EOCV
+	//Removed because unsupported in EOCV sim
 	//private final TextPaint textPaint;
 	private final Paint linePaint;
 	private final ArrayList<MatOfPoint> contours;
@@ -48,8 +45,8 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 	 * @param left    the dividing point for the prop to be on the left
 	 * @param right   the diving point for the prop to be on the right
 	 */
-
-	public ColourMassDetectionProcessor() {
+	
+	public ColourMassDetectionProcessorEOCVsim() {
 		this.contours = new ArrayList<>();
 		//These are very tight ranges for the blue indicator
 		this.lower = new Scalar(90, 160, 90); // the lower hsv threshold for your detection
@@ -57,7 +54,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 		this.minArea = () -> 100;
 		this.left = () -> 213; // the left dividing line, in this case the left third of the frame
 		this.right = () -> 426; // the left dividing line, in this case the right third of the frame
-
+		
 		// setting up the paint for the text in the center of the box
 		//The text doesnt work because textPaint doesn't work in EOCV
 		//textPaint = new TextPaint();
@@ -66,7 +63,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 		//textPaint.setAntiAlias(true);
 		//textPaint.setTextSize(40); // or this
 		//textPaint.setTypeface(Typeface.DEFAULT_BOLD);
-
+		
 		// setting up the paint for the lines that comprise the box
 		linePaint = new Paint();
 		linePaint.setColor(Color.GREEN); // you may want to change this
@@ -75,6 +72,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 		linePaint.setStrokeCap(Paint.Cap.ROUND);
 		linePaint.setStrokeJoin(Paint.Join.ROUND);
 	}
+	
 	@Override
 	public void init(int width, int height, CameraCalibration calibration) {
 		// this method comes with all VisionProcessors, we just don't need to do anything here, and you dont need to call it
@@ -172,7 +170,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 		
 		// updates the previous prop position to help us check for changes
 		previousPropPosition = propPosition;
-
+		
 		//Imgproc.drawContours(frame, contours, -1, colour);
 		
 		// returns back the edited image, don't worry about this too much
@@ -217,6 +215,12 @@ public class ColourMassDetectionProcessor implements VisionProcessor {
 	// returns the largest contour if you want to get information about it
 	public MatOfPoint getLargestContour() {
 		return largestContour;
+	}
+	
+	@Override
+	protected void finalize() throws Throwable {
+		close();
+		super.finalize();
 	}
 	
 	public void close() {

@@ -7,8 +7,6 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.text.TextPaint;
 
-import androidx.annotation.NonNull;
-
 import org.firstinspires.ftc.robotcore.external.function.Consumer;
 import org.firstinspires.ftc.robotcore.external.function.Continuation;
 import org.firstinspires.ftc.robotcore.external.stream.CameraStreamSource;
@@ -28,7 +26,7 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.DoubleSupplier;
 
-public class ColourMassDetectionProcessor implements VisionProcessor, CameraStreamSource {
+public class EnhancedColourMassDetectionProcessor implements VisionProcessor, CameraStreamSource {
 	private final DoubleSupplier minArea, left, right;
 	private final Scalar upper; // lower bounds for masking
 	private final Scalar lower; // upper bounds for masking
@@ -38,11 +36,13 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 	private final Mat hierarchy = new Mat();
 	private final Mat sel1 = new Mat(); // these facilitate capturing through 0
 	private final Mat sel2 = new Mat();
+	private final Mat mask = new Mat();
 	private final AtomicReference<Bitmap> lastFrame = new AtomicReference<>(Bitmap.createBitmap(1, 1, Bitmap.Config.RGB_565));
-	private double largestContourX;
-	private double largestContourY;
-	private double largestContourArea;
-	private MatOfPoint largestContour;
+	private double mostSaturatedContourX;
+	private double mostSaturatedContourY;
+	private double mostSaturatedContourArea;
+	private double mostSaturatedContourSaturation;
+	private MatOfPoint mostSaturatedContour;
 	private PropPositions previousPropPosition;
 	private PropPositions recordedPropPosition = PropPositions.UNFOUND;
 	
@@ -50,16 +50,16 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 	/**
 	 * Uses HSVs for the scalars
 	 *
-	 * @param lower   the lower masked bound, a three a value scalar in the form of a HSV
-	 * @param upper   the upper masked bound, a three a value scalar in the form of a HSV
+	 * @param lowerH  the lower masked bound, a H value from HSV, if lowerH is higher than higherH, it will wrap through 0
+	 * @param upperH  the upper masked bound, a H value from HSV, if higherH is lower than lowerH, it will wrap through 0
 	 * @param minArea the minimum area for a detected blob to be considered the prop
 	 * @param left    the dividing point for the prop to be on the left
 	 * @param right   the diving point for the prop to be on the right
 	 */
-	public ColourMassDetectionProcessor(@NonNull Scalar lower, @NonNull Scalar upper, DoubleSupplier minArea, DoubleSupplier left, DoubleSupplier right) {
+	public EnhancedColourMassDetectionProcessor(double lowerH, double upperH, DoubleSupplier minArea, DoubleSupplier left, DoubleSupplier right) {
 		this.contours = new ArrayList<>();
-		this.lower = lower;
-		this.upper = upper;
+		this.lower = new Scalar(lowerH, 0, 0);
+		this.upper = new Scalar(upperH, 255, 255);
 		this.minArea = minArea;
 		this.left = left;
 		this.right = right;
@@ -88,24 +88,31 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 	}
 	
 	/**
-	 * @return the x position of the currently found largest contour in the range [0, camera width], or -1 if no largest contour has been determined
+	 * @return the x position of the currently found most saturated contour in the range [0, camera width], or -1 if no largest contour has been determined
 	 */
-	public double getLargestContourX() {
-		return largestContourX;
+	public double getMostSaturatedContourX() {
+		return mostSaturatedContourX;
 	}
 	
 	/**
-	 * @return the y position of the currently found largest contour in the range [0, camera height], or -1 if no largest contour has been determined
+	 * @return the y position of the currently found most saturated contour in the range [0, camera height], or -1 if no largest contour has been determined
 	 */
-	public double getLargestContourY() {
-		return largestContourY;
+	public double getMostSaturatedContourY() {
+		return mostSaturatedContourY;
 	}
 	
 	/**
-	 * @return the area of the currently found largest contour, or -1 if no largest contour has been determined
+	 * @return the area of the currently found most saturated contour, or -1 if no largest contour has been determined
 	 */
-	public double getLargestContourArea() {
-		return largestContourArea;
+	public double getMostSaturatedContourArea() {
+		return mostSaturatedContourArea;
+	}
+	
+	/**
+	 * @return the area of the currently found most saturated contour, or -1 if no largest contour has been determined
+	 */
+	public double getMostSaturatedContourSaturation() {
+		return mostSaturatedContourSaturation;
 	}
 	
 	@Override
@@ -125,13 +132,15 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 			Core.inRange(frame, new Scalar(0, lower.val[1], lower.val[2]), new Scalar(lower.val[0], upper.val[1], upper.val[2]), sel2);
 			
 			// combines the selections
-			Core.bitwise_or(sel1, sel2, frame);
+			Core.bitwise_or(sel1, sel2, mask);
 		} else {
 			// this process is simpler if we are not trying to wrap through 0
 			// this method makes the colour image black and white, with everything between your upper and lower bound values as white, and everything else black
-			Core.inRange(frame, lower, upper, frame);
+			Core.inRange(frame, lower, upper, mask);
 		}
 		
+		// apply the mask to frame
+		Core.bitwise_and(frame, mask, frame);
 		
 		// this empties out the list of found contours, otherwise we would keep all the old ones, read on to find out more about contours!
 		contours.clear();
@@ -141,9 +150,11 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 		Imgproc.findContours(frame, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
 		
 		// this sets up our largest contour area to be 0
-		largestContourArea = -1;
+		mostSaturatedContourArea = -1;
+		mostSaturatedContourSaturation = -1;
+		
 		// and our currently found largest contour to be null
-		largestContour = null;
+		mostSaturatedContour = null;
 		
 		// gets the current minimum area from min area
 		double minArea = this.minArea.getAsDouble();
@@ -153,32 +164,34 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 		// and then if our area is larger than our minimum area, and our currently found largest area
 		// it stores the contour as our largest contour and the area as our largest area
 		for (MatOfPoint contour : contours) {
+			double meanSaturation = Core.mean(contour).val[1];
 			double area = Imgproc.contourArea(contour);
-			if (area > largestContourArea && area > minArea) {
-				largestContour = contour;
-				largestContourArea = area;
+			if (meanSaturation > mostSaturatedContourSaturation && area > minArea) {
+				mostSaturatedContour = contour;
+				mostSaturatedContourSaturation = meanSaturation;
+				mostSaturatedContourArea = area;
 			}
 		}
 		
 		
 		// sets up the center points of our largest contour to be -1 (offscreen)
-		largestContourX = largestContourY = -1;
+		mostSaturatedContourX = mostSaturatedContourY = -1;
 		
 		// if we found it, calculates the actual centers
-		if (largestContour != null) {
-			Moments moment = Imgproc.moments(largestContour);
-			largestContourX = (moment.m10 / moment.m00);
-			largestContourY = (moment.m01 / moment.m00);
+		if (mostSaturatedContour != null) {
+			Moments moment = Imgproc.moments(mostSaturatedContour);
+			mostSaturatedContourX = (moment.m10 / moment.m00);
+			mostSaturatedContourY = (moment.m01 / moment.m00);
 		}
 		
 		// determines the current prop position, using the left and right dividers we gave earlier
 		// if we didn't find any contours which were large enough, sets it to be unfound
 		PropPositions propPosition;
-		if (largestContour == null) {
+		if (mostSaturatedContour == null) {
 			propPosition = PropPositions.UNFOUND;
-		} else if (largestContourX < left.getAsDouble()) {
+		} else if (mostSaturatedContourX < left.getAsDouble()) {
 			propPosition = PropPositions.LEFT;
-		} else if (largestContourX > right.getAsDouble()) {
+		} else if (mostSaturatedContourX > right.getAsDouble()) {
 			propPosition = PropPositions.RIGHT;
 		} else {
 			propPosition = PropPositions.MIDDLE;
@@ -214,8 +227,8 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 //		}
 		
 		// if the contour exists, draw a rectangle around it and put its position in the middle of the rectangle
-		if (largestContour != null) {
-			Rect rect = Imgproc.boundingRect(largestContour);
+		if (mostSaturatedContour != null) {
+			Rect rect = Imgproc.boundingRect(mostSaturatedContour);
 			
 			float[] points = {rect.x * scaleBmpPxToCanvasPx, rect.y * scaleBmpPxToCanvasPx, (rect.x + rect.width) * scaleBmpPxToCanvasPx, (rect.y + rect.height) * scaleBmpPxToCanvasPx};
 			
@@ -227,7 +240,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 			
 			String text = String.format(Locale.ENGLISH, "%s", recordedPropPosition.toString());
 			
-			canvas.drawText(text, (float) largestContourX * scaleBmpPxToCanvasPx, (float) largestContourY * scaleBmpPxToCanvasPx, textPaint);
+			canvas.drawText(text, (float) mostSaturatedContourX * scaleBmpPxToCanvasPx, (float) mostSaturatedContourY * scaleBmpPxToCanvasPx, textPaint);
 		}
 	}
 	
@@ -239,8 +252,8 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 	}
 	
 	// returns the largest contour if you want to get information about it
-	public MatOfPoint getLargestContour() {
-		return largestContour;
+	public MatOfPoint getMostSaturatedContour() {
+		return mostSaturatedContour;
 	}
 	
 	@Override
@@ -253,6 +266,7 @@ public class ColourMassDetectionProcessor implements VisionProcessor, CameraStre
 		hierarchy.release();
 		sel1.release();
 		sel2.release();
+		mask.release();
 	}
 	
 	@Override
